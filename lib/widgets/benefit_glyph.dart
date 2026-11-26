@@ -44,13 +44,14 @@ class BenefitGlyph extends StatelessWidget {
   static IconData iconFor(String key) =>
       benefitIconFor(key)?.fallback ?? Icons.redeem_outlined;
 
-  static Color tintFor(String key) =>
-      benefitIconFor(key)?.tint ?? AppColors.salary;
+  static Color? tintFor(String key) => benefitIconFor(key)?.tint;
 
   @override
   Widget build(BuildContext context) {
     final info = benefitIconFor(icon);
-    final tint = onDark ? AppColors.benefitOnDark : tintFor(icon);
+    final tint = onDark
+        ? AppColors.benefitOnDark
+        : tintFor(icon) ?? context.colors.salary;
     final fallback = Icon(
       iconFor(icon),
       size: bare ? size * 0.78 : size * 0.52,

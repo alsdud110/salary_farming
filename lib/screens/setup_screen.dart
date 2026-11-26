@@ -159,7 +159,7 @@ class _SetupScreenState extends State<SetupScreen> {
                 IconButton(
                   tooltip: '이전',
                   onPressed: _back,
-                  icon: const Icon(Icons.arrow_back, color: AppColors.ink),
+                  icon: Icon(Icons.arrow_back, color: context.colors.ink),
                 ),
                 const SizedBox(width: 4),
                 Expanded(
@@ -172,8 +172,8 @@ class _SetupScreenState extends State<SetupScreen> {
                       builder: (context, v, _) => LinearProgressIndicator(
                         value: v,
                         minHeight: 6,
-                        backgroundColor: AppColors.line,
-                        color: AppColors.salary,
+                        backgroundColor: context.colors.line,
+                        color: context.colors.salary,
                       ),
                     ),
                   ),
@@ -181,8 +181,8 @@ class _SetupScreenState extends State<SetupScreen> {
                 const SizedBox(width: 12),
                 Text(
                   '${index + 1} / 3',
-                  style: const TextStyle(
-                    color: AppColors.inkSoft,
+                  style: TextStyle(
+                    color: context.colors.inkSoft,
                     fontWeight: FontWeight.w600,
                     fontFeatures: tabular,
                   ),
@@ -201,10 +201,10 @@ class _SetupScreenState extends State<SetupScreen> {
                     index: 0,
                     child: Text(
                       kicker,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: AppColors.field,
+                        color: context.colors.fieldText,
                       ),
                     ),
                   ),
@@ -224,10 +224,10 @@ class _SetupScreenState extends State<SetupScreen> {
                     index: 2,
                     child: Text(
                       subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         height: 1.5,
-                        color: AppColors.inkSoft,
+                        color: context.colors.inkSoft,
                       ),
                     ),
                   ),
@@ -253,10 +253,13 @@ class _SetupScreenState extends State<SetupScreen> {
                   ),
                   if (_step == _Step.job) ...[
                     const SizedBox(height: 20),
-                    const Text(
+                    Text(
                       '입력한 내용은 이 기기에만 저장되고 어디로도 전송되지 않아요',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 12, color: AppColors.inkSoft),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: context.colors.inkSoft,
+                      ),
                     ),
                   ],
                 ],
@@ -369,14 +372,14 @@ class _LoadingViewState extends State<_LoadingView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const StaggerIn(
+          StaggerIn(
             index: 0,
             child: Text(
               '설정 반영',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: AppColors.field,
+                color: context.colors.fieldText,
               ),
             ),
           ),
@@ -389,21 +392,21 @@ class _LoadingViewState extends State<_LoadingView> {
             ),
           ),
           const SizedBox(height: 8),
-          const StaggerIn(
+          StaggerIn(
             index: 2,
             child: Text(
               '급여와 근무 시간으로 하루치와 1초치를 계산해요',
               style: TextStyle(
                 fontSize: 15,
                 height: 1.5,
-                color: AppColors.inkSoft,
+                color: context.colors.inkSoft,
               ),
             ),
           ),
           const SizedBox(height: 32),
           Container(
             decoration: BoxDecoration(
-              color: AppColors.card,
+              color: context.colors.card,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
@@ -449,7 +452,7 @@ class _TaskRow extends StatelessWidget {
         height: 20,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: AppColors.line, width: 2),
+          border: Border.all(color: context.colors.line, width: 2),
         ),
       ),
       _TaskState.running => const LinearSpinner(key: ValueKey('running')),
@@ -459,11 +462,7 @@ class _TaskRow extends StatelessWidget {
         duration: const Duration(milliseconds: 360),
         curve: Curves.easeOutCubic,
         builder: (context, v, child) => Transform.scale(scale: v, child: child),
-        child: const Icon(
-          Icons.check_circle,
-          size: 20,
-          color: AppColors.salary,
-        ),
+        child: Icon(Icons.check_circle, size: 20, color: context.colors.salary),
       ),
     };
 
@@ -486,8 +485,8 @@ class _TaskRow extends StatelessWidget {
                     ? FontWeight.w400
                     : FontWeight.w600,
                 color: state == _TaskState.waiting
-                    ? AppColors.inkSoft
-                    : AppColors.ink,
+                    ? context.colors.inkSoft
+                    : context.colors.ink,
               ),
               child: Text(label),
             ),
@@ -495,12 +494,12 @@ class _TaskRow extends StatelessWidget {
           AnimatedOpacity(
             opacity: state == _TaskState.done ? 1 : 0,
             duration: const Duration(milliseconds: 250),
-            child: const Text(
+            child: Text(
               '완료',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: AppColors.field,
+                color: context.colors.fieldText,
               ),
             ),
           ),
@@ -556,14 +555,14 @@ class _ReadyView extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const StaggerIn(
+                StaggerIn(
                   index: 0,
                   child: Text(
                     '세팅 완료',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: AppColors.field,
+                      color: context.colors.fieldText,
                     ),
                   ),
                 ),
@@ -581,10 +580,10 @@ class _ReadyView extends StatelessWidget {
                   child: Text(
                     '${s.jobType.label} · ${s.payBasis.label} ${wonReadable(s.payAmount)} · '
                     '${clock(s.startMinute)}–${clock(s.endMinute)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       height: 1.5,
-                      color: AppColors.inkSoft,
+                      color: context.colors.inkSoft,
                     ),
                   ),
                 ),
@@ -643,9 +642,9 @@ class _ReadyView extends StatelessWidget {
                   child: BasisCard(settings: s, today: now),
                 ),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   '설정은 언제든 설정 탭에서 바꿀 수 있어요',
-                  style: TextStyle(fontSize: 13, color: AppColors.inkSoft),
+                  style: TextStyle(fontSize: 13, color: context.colors.inkSoft),
                 ),
               ],
             ),

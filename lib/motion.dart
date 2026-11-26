@@ -169,7 +169,7 @@ class _NoticeState extends State<_Notice> with TickerProviderStateMixin {
     );
 
     Widget box = Material(
-      color: AppColors.ink,
+      color: context.colors.inverse,
       borderRadius: BorderRadius.circular(14),
       child: Padding(
         padding: EdgeInsets.fromLTRB(
@@ -341,16 +341,13 @@ class _SpringPressState extends State<SpringPress>
 
 /// 같은 속도(linear)로 계속 도는 로딩 표시.
 class LinearSpinner extends StatefulWidget {
-  const LinearSpinner({
-    super.key,
-    this.size = 20,
-    this.color = AppColors.salary,
-    this.track = AppColors.salarySoft,
-  });
+  const LinearSpinner({super.key, this.size = 20, this.color, this.track});
 
   final double size;
-  final Color color;
-  final Color track;
+
+  /// 없으면 테마의 초록(salary)·옅은 초록(salarySoft).
+  final Color? color;
+  final Color? track;
 
   @override
   State<LinearSpinner> createState() => _LinearSpinnerState();
@@ -378,8 +375,8 @@ class _LinearSpinnerState extends State<LinearSpinner>
         value: 0.28,
         strokeWidth: 2.5,
         strokeCap: StrokeCap.round,
-        color: widget.color,
-        backgroundColor: widget.track,
+        color: widget.color ?? context.colors.salary,
+        backgroundColor: widget.track ?? context.colors.salarySoft,
       ),
     );
     if (Motion.reduced(context)) return ring;

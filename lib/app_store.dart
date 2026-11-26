@@ -32,6 +32,7 @@ class AppStore extends ChangeNotifier {
   static const _key = 'salary_farming_state_v1';
   static const _animationKey = 'farm_effect_animation';
   static const _hapticKey = 'farm_effect_haptic';
+  static const _darkThemeKey = 'dark_theme';
 
   final DateTime Function() _clock;
   SharedPreferences? _prefs;
@@ -42,6 +43,7 @@ class AppStore extends ChangeNotifier {
   int _seq = 0;
   bool _farmAnimation = true;
   bool _farmHaptic = true;
+  bool _darkTheme = false;
 
   DateTime now() => _clock();
 
@@ -58,6 +60,9 @@ class AppStore extends ChangeNotifier {
   /// 적립할 때 가볍게 진동할지. 기본 켜짐.
   bool get farmHaptic => _farmHaptic;
 
+  /// 다크 테마를 쓰는지. 기본은 라이트(기기 설정을 따르지 않고 사용자가 고른다).
+  bool get darkTheme => _darkTheme;
+
   /// 홈에 놓는 순서: 사용 빈도가 높은 것부터.
   List<BenefitTemplate> get templatesByFrequency {
     final list = [..._templates];
@@ -72,6 +77,7 @@ class AppStore extends ChangeNotifier {
     _prefs = await SharedPreferences.getInstance();
     _farmAnimation = _prefs!.getBool(_animationKey) ?? true;
     _farmHaptic = _prefs!.getBool(_hapticKey) ?? true;
+    _darkTheme = _prefs!.getBool(_darkThemeKey) ?? false;
     final raw = _prefs!.getString(_key);
     if (raw == null) {
       _templates = [...defaultTemplates];
@@ -272,6 +278,13 @@ class AppStore extends ChangeNotifier {
     _farmHaptic = on;
     notifyListeners();
     await _prefs?.setBool(_hapticKey, on);
+  }
+
+  /// 라이트 ↔ 다크. 기기 취향이라 모든 데이터 지우기에도 남긴다.
+  Future<void> toggleTheme() async {
+    _darkTheme = !_darkTheme;
+    notifyListeners();
+    await _prefs?.setBool(_darkThemeKey, _darkTheme);
   }
 
   // ---- 초기화 ----

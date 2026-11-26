@@ -199,9 +199,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             '누르면 바로 적립돼요. 길게 누르면 고칠 수 있어요.',
-            style: TextStyle(fontSize: 13, color: AppColors.inkSoft),
+            style: TextStyle(fontSize: 13, color: context.colors.inkSoft),
           ),
           const SizedBox(height: 12),
           _BenefitGrid(templates: tiles, onTap: _credit, onLongPress: _edit),
@@ -214,9 +214,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ? null
                 : Text(
                     '${todayRecords.length}건',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
-                      color: AppColors.inkSoft,
+                      color: context.colors.inkSoft,
                     ),
                   ),
           ),
@@ -276,7 +276,7 @@ class _Header extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 '${now.month}월 ${now.day}일 ${weekdayLabels[now.weekday - 1]}요일',
-                style: const TextStyle(fontSize: 14, color: AppColors.inkSoft),
+                style: TextStyle(fontSize: 14, color: context.colors.inkSoft),
               ),
             ],
           ),
@@ -286,7 +286,7 @@ class _Header extends StatelessWidget {
             tooltip: '설정',
             onPressed: onOpenSettings,
             iconSize: 26,
-            icon: const Icon(Icons.settings_outlined, color: AppColors.ink),
+            icon: Icon(Icons.settings_outlined, color: context.colors.ink),
           ),
       ],
     );
@@ -558,7 +558,7 @@ class _WorkProgress extends StatelessWidget {
       progress: SalaryCalculator.progress(settings, now),
       primary: Text(
         _status,
-        style: const TextStyle(fontSize: 14, color: AppColors.ink),
+        style: TextStyle(fontSize: 14, color: context.colors.ink),
       ),
       secondary: phase == WorkPhase.dayOff
           ? null
@@ -616,10 +616,10 @@ class _ProgressSection extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               '${(progress * 100).floor()}%',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: AppColors.field,
+                color: context.colors.fieldText,
                 fontFeatures: tabular,
               ),
             ),
@@ -635,8 +635,8 @@ class _ProgressSection extends StatelessWidget {
             builder: (context, v, _) => LinearProgressIndicator(
               value: v,
               minHeight: 10,
-              backgroundColor: AppColors.secondary,
-              color: AppColors.salary,
+              backgroundColor: context.colors.secondary,
+              color: context.colors.salary,
             ),
           ),
         ),
@@ -650,7 +650,7 @@ class _ProgressSection extends StatelessWidget {
             if (secondary != null)
               Text(
                 secondary!,
-                style: const TextStyle(fontSize: 13, color: AppColors.inkSoft),
+                style: TextStyle(fontSize: 13, color: context.colors.inkSoft),
               ),
           ],
         ),
@@ -669,7 +669,7 @@ class _PhaseChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: active ? AppColors.secondary : AppColors.shade,
+        color: active ? context.colors.secondary : context.colors.shade,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
@@ -677,7 +677,7 @@ class _PhaseChip extends StatelessWidget {
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w500,
-          color: active ? AppColors.field : AppColors.inkSoft,
+          color: active ? context.colors.fieldText : context.colors.inkSoft,
         ),
       ),
     );
@@ -713,9 +713,9 @@ class _MonthCard extends StatelessWidget {
       // 제목 옆에 이번 달 전체 기간을 흐리게 붙인다. 예: (11/01~11/30)
       chip: Text(
         '(${_mmdd(now.month, 1)}~${_mmdd(now.month, DateTime(now.year, now.month + 1, 0).day)})',
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 13,
-          color: AppColors.inkSoft,
+          color: context.colors.inkSoft,
           fontFeatures: tabular,
         ),
       ),
@@ -724,9 +724,9 @@ class _MonthCard extends StatelessWidget {
         valueAt: valueAt,
         running: growing,
         suffix: '원 쌓였어요',
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 14,
-          color: AppColors.ink,
+          color: context.colors.ink,
           fontFeatures: tabular,
         ),
       ),
@@ -829,12 +829,12 @@ class BenefitTile extends StatelessWidget {
         button: true,
         label: '${t.name} ${won(t.amount)} 파밍하기',
         child: Material(
-          color: AppColors.card,
+          color: context.colors.card,
           borderRadius: BorderRadius.circular(AppRadius.tile),
           child: InkWell(
             borderRadius: BorderRadius.circular(AppRadius.tile),
-            splashColor: AppColors.benefitSoft,
-            highlightColor: AppColors.benefitSoft,
+            splashColor: context.colors.benefitSoft,
+            highlightColor: context.colors.benefitSoft,
             onTap: onTap,
             onLongPress: onLongPress,
             child: ExcludeSemantics(
@@ -860,10 +860,10 @@ class BenefitTile extends StatelessWidget {
                     Text(
                       '+${won(t.amount)}',
                       maxLines: 1,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
-                        color: AppColors.benefitInk,
+                        color: context.colors.benefitInk,
                         fontFeatures: tabular,
                       ),
                     ),
@@ -905,16 +905,16 @@ class AddBenefitTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return SpringPress(
       child: Material(
-        color: AppColors.card,
+        color: context.colors.card,
         borderRadius: BorderRadius.circular(AppRadius.tile),
         child: InkWell(
           borderRadius: BorderRadius.circular(AppRadius.tile),
           onTap: onTap,
-          child: const Padding(
+          child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
             child: _TileBody(
               children: [
-                Icon(Icons.add_circle, size: 40, color: AppColors.salary),
+                Icon(Icons.add_circle, size: 40, color: context.colors.salary),
                 SizedBox(height: 8),
                 Text(
                   '직접 추가',
@@ -923,7 +923,7 @@ class AddBenefitTile extends StatelessWidget {
                 SizedBox(height: 2),
                 Text(
                   '등록',
-                  style: TextStyle(fontSize: 13, color: AppColors.inkSoft),
+                  style: TextStyle(fontSize: 13, color: context.colors.inkSoft),
                 ),
               ],
             ),
@@ -945,6 +945,7 @@ class _AddButton extends StatelessWidget {
       onPressed: onPressed,
       style: FilledButton.styleFrom(
         backgroundColor: AppColors.coin,
+        // 골드 면 위 글자는 테마와 상관없이 짙게
         foregroundColor: AppColors.ink,
       ),
       icon: const Icon(Icons.add_circle_outline),
@@ -1006,14 +1007,14 @@ class _FarmSheetState extends State<_FarmSheet> {
               IconButton(
                 tooltip: '닫기',
                 onPressed: _close,
-                icon: const Icon(Icons.close, color: AppColors.inkSoft),
+                icon: Icon(Icons.close, color: context.colors.inkSoft),
               ),
             ],
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             '하나를 고르면 바로 오늘 파밍 수익에 더해져요',
-            style: TextStyle(fontSize: 14, color: AppColors.inkSoft),
+            style: TextStyle(fontSize: 14, color: context.colors.inkSoft),
           ),
           const SizedBox(height: 16),
           SingleChildScrollView(
@@ -1074,7 +1075,7 @@ class _FilterChip extends StatelessWidget {
         button: true,
         selected: selected,
         child: Material(
-          color: selected ? AppColors.field : AppColors.card,
+          color: selected ? AppColors.field : context.colors.card,
           borderRadius: BorderRadius.circular(24),
           child: InkWell(
             borderRadius: BorderRadius.circular(24),
@@ -1088,7 +1089,7 @@ class _FilterChip extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: selected ? Colors.white : AppColors.inkSoft,
+                  color: selected ? Colors.white : context.colors.inkSoft,
                 ),
               ),
             ),
@@ -1132,26 +1133,23 @@ class _RecordRow extends StatelessWidget {
                 ),
                 Text(
                   clock(r.at.hour * 60 + r.at.minute),
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.inkSoft,
-                  ),
+                  style: TextStyle(fontSize: 13, color: context.colors.inkSoft),
                 ),
               ],
             ),
           ),
           Text(
             '+${won(r.amount)}',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w500,
-              color: AppColors.benefitInk,
+              color: context.colors.benefitInk,
               fontFeatures: tabular,
             ),
           ),
           IconButton(
             tooltip: '${r.name} 기록 지우기',
-            icon: const Icon(Icons.close, size: 20, color: AppColors.inkSoft),
+            icon: Icon(Icons.close, size: 20, color: context.colors.inkSoft),
             onPressed: onDelete,
           ),
         ],
@@ -1167,10 +1165,10 @@ class _EmptyRecords extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
-      decoration: surfaceBox(color: AppColors.shade),
-      child: const Column(
+      decoration: surfaceBox(color: context.colors.shade),
+      child: Column(
         children: [
-          Icon(Icons.eco_outlined, size: 32, color: AppColors.salary),
+          Icon(Icons.eco_outlined, size: 32, color: context.colors.salary),
           SizedBox(height: 8),
           Text(
             '아직 파밍한 게 없어요',
@@ -1179,7 +1177,7 @@ class _EmptyRecords extends StatelessWidget {
           SizedBox(height: 4),
           Text(
             '탕비실 커피 한 잔부터 파밍해 볼까요?',
-            style: TextStyle(fontSize: 13, color: AppColors.inkSoft),
+            style: TextStyle(fontSize: 13, color: context.colors.inkSoft),
           ),
         ],
       ),

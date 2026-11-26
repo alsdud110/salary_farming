@@ -201,10 +201,10 @@ class _BurstState extends State<_Burst> with SingleTickerProviderStateMixin {
         child: Text(
           '+${won(widget.amount)}',
           // 앱 맨 위 레이어라 Material 글꼴 설정이 없어 직접 정한다.
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: appFont,
             decoration: TextDecoration.none,
-            color: AppColors.benefitInk,
+            color: context.colors.benefitInk,
             fontSize: 15,
             fontWeight: FontWeight.w600,
             fontFeatures: tabular,

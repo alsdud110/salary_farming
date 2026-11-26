@@ -62,7 +62,9 @@ class _IntroViewState extends State<IntroView> {
                   child: Text(
                     '건너뛰기',
                     style: TextStyle(
-                      color: _isLast ? Colors.transparent : AppColors.inkSoft,
+                      color: _isLast
+                          ? Colors.transparent
+                          : context.colors.inkSoft,
                     ),
                   ),
                 ),
@@ -108,7 +110,9 @@ class _IntroViewState extends State<IntroView> {
                   width: i == _page ? 20 : 7,
                   height: 7,
                   decoration: BoxDecoration(
-                    color: i == _page ? AppColors.salary : AppColors.line,
+                    color: i == _page
+                        ? context.colors.salary
+                        : context.colors.line,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -185,10 +189,10 @@ class _IntroPage extends StatelessWidget {
             index: title.split('\n').length + i,
             child: Text(
               line,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 height: 1.5,
-                color: AppColors.inkSoft,
+                color: context.colors.inkSoft,
               ),
             ),
           ),
@@ -485,8 +489,8 @@ class _PoppingRow extends StatelessWidget {
             subtitle: Text(item.$4),
             trailing: Text(
               '+${won(item.$3)}',
-              style: const TextStyle(
-                color: AppColors.benefitInk,
+              style: TextStyle(
+                color: context.colors.benefitInk,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 fontFeatures: tabular,
@@ -519,7 +523,7 @@ class _BenefitTotal extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.benefitSoft,
+          color: context.colors.benefitSoft,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
@@ -536,8 +540,8 @@ class _BenefitTotal extends StatelessWidget {
               curve: Curves.easeOutCubic,
               builder: (context, v, _) => Text(
                 '+${won(v.round())}',
-                style: const TextStyle(
-                  color: AppColors.benefitInk,
+                style: TextStyle(
+                  color: context.colors.benefitInk,
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
                   fontFeatures: tabular,
@@ -629,9 +633,9 @@ class _StatsDemoState extends State<_StatsDemo>
               children: [
                 const _PeriodTabs(),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   '이번 주 번 돈',
-                  style: TextStyle(color: AppColors.inkSoft),
+                  style: TextStyle(color: context.colors.inkSoft),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -675,9 +679,9 @@ class _StatsDemoState extends State<_StatsDemo>
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Row(
+                Row(
                   children: [
-                    _Legend(color: AppColors.salary, label: '기본 수익'),
+                    _Legend(color: context.colors.salary, label: '기본 수익'),
                     SizedBox(width: 16),
                     _Legend(color: AppColors.benefit, label: '파밍 수익'),
                   ],
@@ -726,7 +730,7 @@ class _Bar extends StatelessWidget {
           width: 18,
           height: salaryH,
           decoration: BoxDecoration(
-            color: AppColors.salary,
+            color: context.colors.salary,
             borderRadius: BorderRadius.vertical(
               top: Radius.circular(benefitH < 1 ? 4 : 0),
             ),
@@ -735,7 +739,7 @@ class _Bar extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           label,
-          style: const TextStyle(fontSize: 12, color: AppColors.inkSoft),
+          style: TextStyle(fontSize: 12, color: context.colors.inkSoft),
         ),
       ],
     );
@@ -760,7 +764,7 @@ class _PeriodTabs extends StatelessWidget {
               margin: const EdgeInsets.symmetric(horizontal: 2),
               padding: const EdgeInsets.symmetric(vertical: 8),
               decoration: BoxDecoration(
-                color: selected ? AppColors.ink : AppColors.paper,
+                color: selected ? context.colors.inverse : context.colors.paper,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
@@ -769,7 +773,7 @@ class _PeriodTabs extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: selected ? Colors.white : AppColors.inkSoft,
+                  color: selected ? Colors.white : context.colors.inkSoft,
                 ),
               ),
             ),
@@ -800,7 +804,7 @@ class _Legend extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           label,
-          style: const TextStyle(fontSize: 12, color: AppColors.inkSoft),
+          style: TextStyle(fontSize: 12, color: context.colors.inkSoft),
         ),
       ],
     );

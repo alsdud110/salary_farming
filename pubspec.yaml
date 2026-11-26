@@ -38,6 +38,8 @@ dependencies:
   share_plus: ^13.3.1
   gal: ^3.0.1
   intl: ^0.20.3
+  # 테마 바꾸기 버튼의 해·달 애니메이션(올인바이블과 같은 theme_toggler.json)
+  lottie: ^3.5.1
   flutter_localizations:
     sdk: flutter
 
@@ -70,6 +72,7 @@ flutter:
     - assets/icons/
     # 브랜드 심볼(동전 + 새싹, 투명 배경). 혜택 아이콘과 따로 둔다. lib/widgets/brand_symbol.dart
     - assets/images/brand/
+    - assets/lottie/
 
   # Pretendard (SIL OFL 1.1, assets/fonts/LICENSE-Pretendard.txt).
   # 실행 중 내려받지 않고 앱에 넣는다(입력 정보가 기기 밖으로 나가지 않는다는 약속과 맞춘다).

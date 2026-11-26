@@ -67,6 +67,116 @@ class AppColors {
   static const danger = Color(0xFFB3402E);
 }
 
+/// 테마(라이트·다크)에 따라 바뀌는 색. 화면에서는 `context.colors.ink` 처럼 쓴다.
+///
+/// 초록 메인 카드처럼 어느 테마에서나 같은 짙은 면과 그 위의 색(field, fieldMuted, coin,
+/// benefitOnDark, darkTrack 등)은 바뀌지 않으므로 [AppColors] 상수를 그대로 쓴다.
+@immutable
+class AppPalette extends ThemeExtension<AppPalette> {
+  const AppPalette({
+    required this.paper,
+    required this.card,
+    required this.ink,
+    required this.inkSoft,
+    required this.line,
+    required this.shade,
+    required this.salary,
+    required this.secondary,
+    required this.salarySoft,
+    required this.fieldText,
+    required this.benefitSoft,
+    required this.benefitInk,
+    required this.danger,
+    required this.inverse,
+  });
+
+  final Color paper;
+  final Color card;
+  final Color ink;
+  final Color inkSoft;
+  final Color line;
+  final Color shade;
+  final Color salary;
+  final Color secondary;
+  final Color salarySoft;
+
+  /// 바탕 위의 작은 초록 글자(라이트에서는 [AppColors.field]).
+  final Color fieldText;
+  final Color benefitSoft;
+  final Color benefitInk;
+  final Color danger;
+
+  /// 흰 글자를 얹는 알림(스낵바·토스트) 바탕.
+  final Color inverse;
+
+  static const light = AppPalette(
+    paper: AppColors.paper,
+    card: AppColors.card,
+    ink: AppColors.ink,
+    inkSoft: AppColors.inkSoft,
+    line: AppColors.line,
+    shade: AppColors.shade,
+    salary: AppColors.salary,
+    secondary: AppColors.secondary,
+    salarySoft: AppColors.salarySoft,
+    fieldText: AppColors.field,
+    benefitSoft: AppColors.benefitSoft,
+    benefitInk: AppColors.benefitInk,
+    danger: AppColors.danger,
+    inverse: AppColors.ink,
+  );
+
+  /// 다크: 짙은 초록빛 검정 바탕, 글자는 밝게, 초록·골드는 어두운 바탕에서 읽히게 밝힌다.
+  static const dark = AppPalette(
+    paper: Color(0xFF0F1712),
+    card: Color(0xFF18231C),
+    ink: Color(0xFFE4EEE6),
+    inkSoft: Color(0xFFA3B5A8),
+    line: Color(0xFF2B3A31),
+    shade: Color(0xFF1C2922),
+    salary: Color(0xFF5CC793),
+    secondary: Color(0xFF2C5A43),
+    salarySoft: Color(0xFF1B3326),
+    fieldText: Color(0xFF6FD3A0),
+    benefitSoft: Color(0xFF362B12),
+    benefitInk: Color(0xFFEBC45E),
+    danger: Color(0xFFF08A75),
+    inverse: Color(0xFF34483C),
+  );
+
+  // 쓰는 곳이 없어 값을 바꾸는 copyWith 는 두지 않는다.
+  @override
+  AppPalette copyWith() => this;
+
+  @override
+  AppPalette lerp(AppPalette? other, double t) {
+    if (other == null) return this;
+    Color l(Color a, Color b) => Color.lerp(a, b, t)!;
+    return AppPalette(
+      paper: l(paper, other.paper),
+      card: l(card, other.card),
+      ink: l(ink, other.ink),
+      inkSoft: l(inkSoft, other.inkSoft),
+      line: l(line, other.line),
+      shade: l(shade, other.shade),
+      salary: l(salary, other.salary),
+      secondary: l(secondary, other.secondary),
+      salarySoft: l(salarySoft, other.salarySoft),
+      fieldText: l(fieldText, other.fieldText),
+      benefitSoft: l(benefitSoft, other.benefitSoft),
+      benefitInk: l(benefitInk, other.benefitInk),
+      danger: l(danger, other.danger),
+      inverse: l(inverse, other.inverse),
+    );
+  }
+}
+
+extension AppPaletteOf on BuildContext {
+  /// 지금 테마의 색.
+  AppPalette get colors =>
+      Theme.of(this).extension<AppPalette>() ?? AppPalette.light;
+}
+
 /// 둥근 모서리 크기.
 class AppRadius {
   const AppRadius._();
@@ -80,20 +190,21 @@ const appFont = 'Pretendard';
 
 const tabular = [FontFeature.tabularFigures()];
 
-ThemeData buildTheme() {
+ThemeData buildTheme({bool dark = false}) {
+  final c = dark ? AppPalette.dark : AppPalette.light;
   final scheme =
       ColorScheme.fromSeed(
-        seedColor: AppColors.salary,
-        brightness: Brightness.light,
+        seedColor: c.salary,
+        brightness: dark ? Brightness.dark : Brightness.light,
       ).copyWith(
-        primary: AppColors.salary,
+        primary: c.salary,
         onPrimary: Colors.white,
         secondary: AppColors.coin,
-        surface: AppColors.paper,
-        onSurface: AppColors.ink,
-        error: AppColors.danger,
-        outline: AppColors.line,
-        outlineVariant: AppColors.line,
+        surface: c.paper,
+        onSurface: c.ink,
+        error: c.danger,
+        outline: c.line,
+        outlineVariant: c.line,
       );
 
   final base = ThemeData(
@@ -101,31 +212,29 @@ ThemeData buildTheme() {
     colorScheme: scheme,
     fontFamily: appFont,
   );
-  final text = base.textTheme.apply(
-    bodyColor: AppColors.ink,
-    displayColor: AppColors.ink,
-  );
+  final text = base.textTheme.apply(bodyColor: c.ink, displayColor: c.ink);
 
   return base.copyWith(
-    scaffoldBackgroundColor: AppColors.paper,
+    extensions: [c],
+    scaffoldBackgroundColor: c.paper,
     textTheme: text,
-    appBarTheme: const AppBarTheme(
-      backgroundColor: AppColors.paper,
-      foregroundColor: AppColors.ink,
+    appBarTheme: AppBarTheme(
+      backgroundColor: c.paper,
+      foregroundColor: c.ink,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: false,
       titleTextStyle: TextStyle(
         fontFamily: appFont,
-        color: AppColors.ink,
+        color: c.ink,
         fontSize: 20,
         fontWeight: FontWeight.w600,
       ),
     ),
     // 카드는 테두리·그림자 없이 흰 면과 둥근 모서리로만 구분한다.
     cardTheme: CardThemeData(
-      color: AppColors.card,
+      color: c.card,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       margin: EdgeInsets.zero,
@@ -133,16 +242,12 @@ ThemeData buildTheme() {
         borderRadius: BorderRadius.circular(AppRadius.card),
       ),
     ),
-    dividerTheme: const DividerThemeData(
-      color: AppColors.line,
-      thickness: 1,
-      space: 1,
-    ),
+    dividerTheme: DividerThemeData(color: c.line, thickness: 1, space: 1),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         backgroundColor: AppColors.field,
         foregroundColor: Colors.white,
-        disabledBackgroundColor: AppColors.line,
+        disabledBackgroundColor: c.line,
         minimumSize: const Size.fromHeight(56),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.button),
@@ -156,8 +261,8 @@ ThemeData buildTheme() {
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         minimumSize: const Size.fromHeight(56),
-        foregroundColor: AppColors.ink,
-        backgroundColor: AppColors.card,
+        foregroundColor: c.ink,
+        backgroundColor: c.card,
         side: BorderSide.none,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.button),
@@ -170,26 +275,26 @@ ThemeData buildTheme() {
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
-        foregroundColor: AppColors.field,
+        foregroundColor: c.fieldText,
         minimumSize: const Size(48, 48),
         textStyle: text.labelLarge?.copyWith(fontWeight: FontWeight.w600),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: AppColors.card,
+      fillColor: c.card,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppRadius.button),
-        borderSide: const BorderSide(color: AppColors.line),
+        borderSide: BorderSide(color: c.line),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppRadius.button),
-        borderSide: const BorderSide(color: AppColors.line),
+        borderSide: BorderSide(color: c.line),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppRadius.button),
-        borderSide: const BorderSide(color: AppColors.salary, width: 2),
+        borderSide: BorderSide(color: c.salary, width: 2),
       ),
     ),
     switchTheme: SwitchThemeData(
@@ -197,23 +302,21 @@ ThemeData buildTheme() {
         (s) => s.contains(WidgetState.selected) ? Colors.white : null,
       ),
       trackColor: WidgetStateProperty.resolveWith(
-        (s) => s.contains(WidgetState.selected) ? AppColors.salary : null,
+        (s) => s.contains(WidgetState.selected) ? c.salary : null,
       ),
     ),
-    progressIndicatorTheme: const ProgressIndicatorThemeData(
-      color: AppColors.salary,
-      linearTrackColor: AppColors.secondary,
+    progressIndicatorTheme: ProgressIndicatorThemeData(
+      color: c.salary,
+      linearTrackColor: c.secondary,
     ),
     navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: AppColors.card,
+      backgroundColor: c.card,
       surfaceTintColor: Colors.transparent,
-      indicatorColor: AppColors.secondary,
+      indicatorColor: c.secondary,
       height: 68,
       iconTheme: WidgetStateProperty.resolveWith(
         (s) => IconThemeData(
-          color: s.contains(WidgetState.selected)
-              ? AppColors.field
-              : AppColors.inkSoft,
+          color: s.contains(WidgetState.selected) ? c.fieldText : c.inkSoft,
         ),
       ),
       labelTextStyle: WidgetStateProperty.resolveWith(
@@ -223,15 +326,13 @@ ThemeData buildTheme() {
           fontWeight: states.contains(WidgetState.selected)
               ? FontWeight.w500
               : FontWeight.w500,
-          color: states.contains(WidgetState.selected)
-              ? AppColors.ink
-              : AppColors.inkSoft,
+          color: states.contains(WidgetState.selected) ? c.ink : c.inkSoft,
         ),
       ),
     ),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
-      backgroundColor: AppColors.ink,
+      backgroundColor: c.inverse,
       contentTextStyle: const TextStyle(
         fontFamily: appFont,
         color: Colors.white,
@@ -242,11 +343,11 @@ ThemeData buildTheme() {
     ),
     segmentedButtonTheme: SegmentedButtonThemeData(
       style: SegmentedButton.styleFrom(
-        backgroundColor: AppColors.card,
-        foregroundColor: AppColors.inkSoft,
+        backgroundColor: c.card,
+        foregroundColor: c.inkSoft,
         selectedBackgroundColor: AppColors.field,
         selectedForegroundColor: Colors.white,
-        side: const BorderSide(color: AppColors.line),
+        side: BorderSide(color: c.line),
         minimumSize: const Size(0, 48),
         textStyle: text.labelLarge?.copyWith(
           fontSize: 14,
@@ -254,8 +355,8 @@ ThemeData buildTheme() {
         ),
       ),
     ),
-    bottomSheetTheme: const BottomSheetThemeData(
-      backgroundColor: AppColors.paper,
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: c.paper,
       surfaceTintColor: Colors.transparent,
       showDragHandle: true,
       shape: RoundedRectangleBorder(
@@ -267,6 +368,6 @@ ThemeData buildTheme() {
 
 /// 테두리·그림자 없이 흰 면과 둥근 모서리만 있는 카드 상자.
 BoxDecoration surfaceBox({
-  Color color = AppColors.card,
+  required Color color,
   double radius = AppRadius.card,
 }) => BoxDecoration(color: color, borderRadius: BorderRadius.circular(radius));

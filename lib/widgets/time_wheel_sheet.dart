@@ -15,7 +15,7 @@ Future<int?> showTimeWheel(
     context: context,
     sheetAnimationStyle: Motion.sheet,
     showDragHandle: false,
-    backgroundColor: AppColors.card,
+    backgroundColor: context.colors.card,
     builder: (_) => _TimeWheelSheet(title: title, initialMinute: initialMinute),
   );
 }
@@ -55,7 +55,7 @@ class _TimeWheelSheetState extends State<_TimeWheelSheet> {
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   style: TextButton.styleFrom(
-                    foregroundColor: AppColors.inkSoft,
+                    foregroundColor: context.colors.inkSoft,
                   ),
                   child: const Text('취소'),
                 ),
@@ -83,12 +83,12 @@ class _TimeWheelSheetState extends State<_TimeWheelSheet> {
           SizedBox(
             height: 216,
             child: CupertinoTheme(
-              data: const CupertinoThemeData(
+              data: CupertinoThemeData(
                 textTheme: CupertinoTextThemeData(
                   dateTimePickerTextStyle: TextStyle(
                     fontFamily: appFont,
                     fontSize: 22,
-                    color: AppColors.ink,
+                    color: context.colors.ink,
                   ),
                 ),
               ),

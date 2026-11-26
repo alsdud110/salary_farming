@@ -191,7 +191,7 @@ class JobTypePicker extends StatelessWidget {
       builder: (context, _) => Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          color: AppColors.card,
+          color: context.colors.card,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -234,7 +234,7 @@ class _JobRow extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOutCubic,
-        color: selected ? AppColors.salarySoft : AppColors.card,
+        color: selected ? context.colors.salarySoft : context.colors.card,
         child: Material(
           type: MaterialType.transparency,
           child: InkWell(
@@ -248,7 +248,9 @@ class _JobRow extends StatelessWidget {
                       duration: const Duration(milliseconds: 220),
                       curve: Curves.easeOutCubic,
                       width: 4,
-                      color: selected ? AppColors.salary : Colors.transparent,
+                      color: selected
+                          ? context.colors.salary
+                          : Colors.transparent,
                     ),
                     Expanded(
                       child: Padding(
@@ -266,9 +268,9 @@ class _JobRow extends StatelessWidget {
                             const SizedBox(height: 4),
                             Text(
                               job.description,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
-                                color: AppColors.inkSoft,
+                                color: context.colors.inkSoft,
                               ),
                             ),
                           ],
@@ -285,8 +287,8 @@ class _JobRow extends StatelessWidget {
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                               color: selected
-                                  ? AppColors.field
-                                  : AppColors.inkSoft,
+                                  ? context.colors.fieldText
+                                  : context.colors.inkSoft,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -320,7 +322,7 @@ class _Radio extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-          color: selected ? AppColors.salary : AppColors.line,
+          color: selected ? context.colors.salary : context.colors.line,
           width: 2,
         ),
       ),
@@ -332,8 +334,8 @@ class _Radio extends StatelessWidget {
           child: Container(
             width: 10,
             height: 10,
-            decoration: const BoxDecoration(
-              color: AppColors.salary,
+            decoration: BoxDecoration(
+              color: context.colors.salary,
               shape: BoxShape.circle,
             ),
           ),
@@ -403,10 +405,10 @@ class PayFields extends StatelessWidget {
                 labelText: basis.amountLabel,
                 floatingLabelBehavior: FloatingLabelBehavior.always,
                 hintText: basis.hint,
-                hintStyle: const TextStyle(
+                hintStyle: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w400,
-                  color: AppColors.inkSoft,
+                  color: context.colors.inkSoft,
                 ),
                 suffixText: '원',
                 helperText: _helper(amount),
@@ -467,7 +469,7 @@ class _NetCheck extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
         decoration: BoxDecoration(
-          color: AppColors.salarySoft,
+          color: context.colors.salarySoft,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -475,7 +477,7 @@ class _NetCheck extends StatelessWidget {
           children: [
             Text(
               asking ? '세금 떼면 한 달에' : '3.3% 떼면 한 달에',
-              style: const TextStyle(color: AppColors.field, fontSize: 13),
+              style: TextStyle(color: context.colors.fieldText, fontSize: 13),
             ),
             const SizedBox(height: 2),
             TweenAnimationBuilder<double>(
@@ -503,17 +505,17 @@ class _NetCheck extends StatelessWidget {
                       ),
                   ],
                 ),
-                style: const TextStyle(color: AppColors.field),
+                style: TextStyle(color: context.colors.fieldText),
               ),
             ),
             if (asking) ...[
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 '2026년 4대보험·소득세 기준 추정이에요. 실제 통장에 찍히는 금액과 다르면 직접 넣어 주세요.',
                 style: TextStyle(
                   fontSize: 12,
                   height: 1.4,
-                  color: AppColors.inkSoft,
+                  color: context.colors.inkSoft,
                 ),
               ),
               const SizedBox(height: 16),
@@ -521,9 +523,9 @@ class _NetCheck extends StatelessWidget {
                 onPressed: () => draft.useManualNet(net),
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size.fromHeight(48),
-                  backgroundColor: AppColors.card,
-                  foregroundColor: AppColors.field,
-                  side: const BorderSide(color: AppColors.salary, width: 1.5),
+                  backgroundColor: context.colors.card,
+                  foregroundColor: context.colors.fieldText,
+                  side: BorderSide(color: context.colors.salary, width: 1.5),
                   textStyle: const TextStyle(
                     fontFamily: appFont,
                     fontSize: 15,
@@ -724,26 +726,26 @@ class BasisCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.salarySoft,
+        color: context.colors.salarySoft,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '계산 기준',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: AppColors.field,
+              color: context.colors.fieldText,
             ),
           ),
           const SizedBox(height: 12),
           if (payroll != null) ...[
             _DeductionTable(payroll: payroll),
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
-              child: Divider(color: AppColors.line),
+              child: Divider(color: context.colors.line),
             ),
           ],
           if (s.payBasis == PayBasis.monthlyGross && s.appliesWithholding) ...[
@@ -752,9 +754,9 @@ class BasisCard extends StatelessWidget {
               '3.3% 원천징수',
               '-${won((s.payAmount * TaxCalculator.withholdingRate).round())}',
             ),
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
-              child: Divider(color: AppColors.line),
+              child: Divider(color: context.colors.line),
             ),
           ],
           _BasisRow('${today.month}월 근무일', '$workdays일'),
@@ -770,10 +772,10 @@ class BasisCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             _explain(s),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               height: 1.5,
-              color: AppColors.inkSoft,
+              color: context.colors.inkSoft,
             ),
           ),
         ],
@@ -835,7 +837,7 @@ class _BasisRow extends StatelessWidget {
             child: Text(
               label,
               style: TextStyle(
-                color: strong ? AppColors.ink : AppColors.inkSoft,
+                color: strong ? context.colors.ink : context.colors.inkSoft,
                 fontWeight: strong ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
@@ -844,7 +846,7 @@ class _BasisRow extends StatelessWidget {
             value,
             style: TextStyle(
               fontWeight: strong ? FontWeight.w600 : FontWeight.w600,
-              color: strong ? AppColors.field : AppColors.ink,
+              color: strong ? context.colors.fieldText : context.colors.ink,
               fontFeatures: tabular,
             ),
           ),
@@ -863,18 +865,21 @@ class ErrorBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8E3DE),
+        // 옅은 빨강 바탕. 다크에서는 어두운 바탕에 빨강을 살짝 섞는다.
+        color: Theme.of(context).brightness == Brightness.dark
+            ? context.colors.danger.withValues(alpha: 0.16)
+            : const Color(0xFFF8E3DE),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.error_outline, color: AppColors.danger, size: 20),
+          Icon(Icons.error_outline, color: context.colors.danger, size: 20),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(color: AppColors.danger, height: 1.4),
+              style: TextStyle(color: context.colors.danger, height: 1.4),
             ),
           ),
         ],
@@ -920,10 +925,10 @@ class _DayToggle extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOutCubic,
         decoration: BoxDecoration(
-          color: selected ? AppColors.salary : AppColors.card,
+          color: selected ? context.colors.salary : context.colors.card,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: selected ? AppColors.salary : AppColors.line,
+            color: selected ? context.colors.salary : context.colors.line,
           ),
         ),
         child: Material(
@@ -941,7 +946,7 @@ class _DayToggle extends StatelessWidget {
                       fontFamily: appFont,
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
-                      color: selected ? Colors.white : AppColors.inkSoft,
+                      color: selected ? Colors.white : context.colors.inkSoft,
                     ),
                     child: Text(label),
                   ),
@@ -983,7 +988,7 @@ class _TimeRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 4),
-          const Icon(Icons.chevron_right, color: AppColors.inkSoft),
+          Icon(Icons.chevron_right, color: context.colors.inkSoft),
         ],
       ),
       onTap: onTap,

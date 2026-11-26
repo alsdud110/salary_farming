@@ -8,6 +8,7 @@ import '../theme.dart';
 import '../widgets/benefit_glyph.dart';
 import '../widgets/brand_symbol.dart';
 import '../widgets/template_sheet.dart';
+import '../widgets/theme_toggle_tile.dart';
 import '../widgets/work_settings_form.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -28,9 +29,9 @@ class SettingsScreen extends StatelessWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text(
+            child: Text(
               '모두 지우기',
-              style: TextStyle(color: AppColors.danger),
+              style: TextStyle(color: context.colors.danger),
             ),
           ),
         ],
@@ -111,15 +112,20 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
+              ThemeToggleTile(
+                isDark: store.darkTheme,
+                onToggle: store.toggleTheme,
+              ),
+              const SizedBox(height: 12),
               _FarmEffectsCard(store: store),
               const SizedBox(height: 24),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.salarySoft,
+                  color: context.colors.salarySoft,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Column(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
@@ -127,7 +133,7 @@ class SettingsScreen extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
-                        color: AppColors.field,
+                        color: context.colors.fieldText,
                       ),
                     ),
                     SizedBox(height: 8),
@@ -145,13 +151,13 @@ class SettingsScreen extends StatelessWidget {
               OutlinedButton(
                 onPressed: () => _confirmReset(context),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.danger,
+                  foregroundColor: context.colors.danger,
                 ),
                 child: const Text('모든 데이터 지우기'),
               ),
               const SizedBox(height: 24),
               // 앱 정보
-              const Column(
+              Column(
                 children: [
                   BrandSymbol(size: 48),
                   SizedBox(height: 8),
@@ -162,7 +168,10 @@ class SettingsScreen extends StatelessWidget {
                   SizedBox(height: 2),
                   Text(
                     'Salary Farming 1.0.0',
-                    style: TextStyle(fontSize: 12, color: AppColors.inkSoft),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: context.colors.inkSoft,
+                    ),
                   ),
                 ],
               ),
@@ -232,12 +241,12 @@ class EditSettingsScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
           children: [
-            const Text(
+            Text(
               '바꾼 설정은 오늘부터 적용돼요. 어제까지의 급여 기록은 그대로예요.',
               style: TextStyle(
                 fontSize: 13,
                 height: 1.5,
-                color: AppColors.inkSoft,
+                color: context.colors.inkSoft,
               ),
             ),
             const SizedBox(height: 20),
@@ -273,7 +282,7 @@ class TemplatesScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('혜택 템플릿')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => showTemplateSheet(context, store),
-        backgroundColor: AppColors.ink,
+        backgroundColor: context.colors.inverse,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
         label: const Text('직접 만들기'),
@@ -333,7 +342,7 @@ class _TemplateGroup extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Text(
             emptyText,
-            style: const TextStyle(color: AppColors.inkSoft),
+            style: TextStyle(color: context.colors.inkSoft),
           ),
         ),
       );
@@ -363,7 +372,7 @@ class _TemplateGroup extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 4),
-                  const Icon(Icons.chevron_right, color: AppColors.inkSoft),
+                  Icon(Icons.chevron_right, color: context.colors.inkSoft),
                 ],
               ),
               onTap: () =>

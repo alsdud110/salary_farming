@@ -52,11 +52,11 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.paper,
+      backgroundColor: context.colors.paper,
       body: Center(
         child: FadeTransition(
           opacity: CurvedAnimation(parent: _c, curve: Curves.easeOut),
-          child: const Column(
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               BrandSymbol(size: 112),
@@ -66,7 +66,7 @@ class _SplashScreenState extends State<SplashScreen>
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.ink,
+                  color: context.colors.ink,
                 ),
               ),
             ],

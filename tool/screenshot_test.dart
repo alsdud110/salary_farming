@@ -270,4 +270,60 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     });
   }
+
+  // 다크 테마: 홈 · 수확 결산(월간) · 설정 · 혜택 시트 · 온보딩 급여 입력.
+  testWidgets('dark', (tester) async {
+    tester.view.physicalSize = const Size(824, 1830);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    SharedPreferences.setMockInitialValues({'flutter.dark_theme': true});
+
+    var now = DateTime(2026, 11, 2, 9, 0);
+    final store = AppStore(clock: () => now);
+    await store.load();
+    await store.saveSettings(
+      const WorkSettings(
+        jobType: JobType.fullTime,
+        payBasis: PayBasis.annualGross,
+        payAmount: 40000000,
+        nonTaxableMonthly: WorkSettings.defaultNonTaxableMonthly,
+        workWeekdays: {1, 2, 3, 4, 5},
+        startMinute: 9 * 60,
+        endMinute: 18 * 60,
+        breakStartMinute: 12 * 60,
+        breakEndMinute: 13 * 60,
+      ),
+    );
+    for (final (day, id) in [(3, 'd_coffee'), (5, 'd_lunch'), (24, 'd_snack'), (26, 'd_coffee')]) {
+      now = DateTime(2026, 11, day, 10, 0);
+      await store.credit(store.templates.firstWhere((t) => t.id == id));
+    }
+    now = DateTime(2026, 11, 26, 19, 30); // 퇴근 후: 금액이 멈춰 있어야 pumpAndSettle 이 끝난다
+
+    await tester.pumpWidget(SalaryFarmingApp(store: store));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    await shot(tester, '19_dark_home');
+    await tester.drag(find.byType(ListView), const Offset(0, -620));
+    await tester.pumpAndSettle();
+    await shot(tester, '19_dark_home_scrolled');
+
+    await tester.tap(find.text('수확 결산'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('월간'));
+    await tester.pumpAndSettle();
+    await shot(tester, '20_dark_stats_month');
+
+    await tester.tap(find.text('설정'));
+    await tester.pumpAndSettle();
+    await shot(tester, '21_dark_settings');
+
+    // 설정의 테마 버튼으로 라이트로 돌아간다.
+    await tester.tap(find.text('다크 모드'));
+    await tester.pumpAndSettle();
+    expect(store.darkTheme, isFalse);
+    expect(find.text('라이트 모드'), findsOneWidget);
+    await shot(tester, '21b_settings_back_to_light');
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 }

@@ -24,7 +24,7 @@ Future<void> showTemplateSheet(
       maxHeight: MediaQuery.sizeOf(context).height * 0.9,
     ),
     sheetAnimationStyle: Motion.sheet,
-    backgroundColor: AppColors.paper,
+    backgroundColor: context.colors.paper,
     showDragHandle: true,
     builder: (_) => _TemplateSheet(store: store, template: template),
   );
@@ -115,7 +115,7 @@ class _TemplateSheetState extends State<_TemplateSheet> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('지우기', style: TextStyle(color: AppColors.danger)),
+            child: Text('지우기', style: TextStyle(color: context.colors.danger)),
           ),
         ],
       ),
@@ -151,7 +151,7 @@ class _TemplateSheetState extends State<_TemplateSheet> {
                 IconButton(
                   tooltip: '닫기',
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, color: AppColors.inkSoft),
+                  icon: Icon(Icons.close, color: context.colors.inkSoft),
                 ),
               ],
             ),
@@ -221,9 +221,9 @@ class _TemplateSheetState extends State<_TemplateSheet> {
               onSelectionChanged: (v) => setState(() => _frequency = v.first),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               '자주 받는 혜택일수록 홈 화면 앞쪽에 놓여요',
-              style: TextStyle(fontSize: 12, color: AppColors.inkSoft),
+              style: TextStyle(fontSize: 12, color: context.colors.inkSoft),
             ),
             const SizedBox(height: 24),
             FilledButton(onPressed: _save, child: const Text('저장')),
@@ -231,9 +231,9 @@ class _TemplateSheetState extends State<_TemplateSheet> {
               const SizedBox(height: 4),
               TextButton(
                 onPressed: _delete,
-                child: const Text(
+                child: Text(
                   '이 템플릿 지우기',
-                  style: TextStyle(color: AppColors.danger),
+                  style: TextStyle(color: context.colors.danger),
                 ),
               ),
             ],
@@ -258,11 +258,11 @@ class _IconChoice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected ? AppColors.benefitSoft : AppColors.card,
+      color: selected ? context.colors.benefitSoft : context.colors.card,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: selected ? AppColors.benefit : AppColors.line,
+          color: selected ? AppColors.benefit : context.colors.line,
           width: selected ? 2 : 1,
         ),
       ),

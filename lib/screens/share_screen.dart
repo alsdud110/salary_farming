@@ -153,11 +153,15 @@ class _ShareScreenState extends State<ShareScreen> {
                     // 저장·공유는 이 경계를 그대로 찍으므로 미리보기와 같은 이미지가 나간다.
                     child: RepaintBoundary(
                       key: _cardKey,
-                      child: SettlementCard(
-                        period: widget.period,
-                        totals: widget.totals,
-                        summaries: widget.summaries,
-                        scope: _scope,
+                      // 공유 이미지는 앱 테마와 상관없이 늘 밝은 결산 카드로 만든다.
+                      child: Theme(
+                        data: buildTheme(),
+                        child: SettlementCard(
+                          period: widget.period,
+                          totals: widget.totals,
+                          summaries: widget.summaries,
+                          scope: _scope,
+                        ),
                       ),
                     ),
                   ),
@@ -356,7 +360,7 @@ class SettlementCard extends StatelessWidget {
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-              decoration: surfaceBox(radius: 18),
+              decoration: surfaceBox(color: AppColors.card, radius: 18),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -486,7 +490,7 @@ class _TopBenefit extends StatelessWidget {
     final s = summary;
     return Container(
       padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
-      decoration: surfaceBox(radius: 18),
+      decoration: surfaceBox(color: AppColors.card, radius: 18),
       child: Column(
         children: [
           Stack(

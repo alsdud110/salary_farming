@@ -163,12 +163,12 @@ class _TotalsCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               '총 수확',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: AppColors.inkSoft,
+                color: context.colors.inkSoft,
               ),
             ),
             const SizedBox(height: 4),
@@ -193,7 +193,7 @@ class _TotalsCard extends StatelessWidget {
               child: SizedBox(
                 height: 10,
                 child: total == 0
-                    ? const ColoredBox(color: AppColors.line)
+                    ? ColoredBox(color: context.colors.line)
                     : Row(
                         // 색 조각이 막대 높이를 꽉 채우게 한다(안 그러면 높이 0으로 안 보인다).
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -205,7 +205,7 @@ class _TotalsCard extends StatelessWidget {
                               flex: (totals.salary * 1000 / total)
                                   .round()
                                   .clamp(1, 1000),
-                              child: const ColoredBox(color: AppColors.salary),
+                              child: ColoredBox(color: context.colors.salary),
                             ),
                           if (totals.salary > 0 && totals.benefit > 0)
                             const SizedBox(width: 2),
@@ -222,7 +222,7 @@ class _TotalsCard extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             _LegendRow(
-              color: AppColors.salary,
+              color: context.colors.salary,
               label: '기본 수익',
               value: won(totals.salary),
             ),
@@ -310,9 +310,9 @@ class _ChartCard extends StatelessWidget {
                 const Spacer(),
                 Text(
                   '가장 많은 구간 ${won(max)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.inkSoft,
+                    color: context.colors.inkSoft,
                     fontFeatures: tabular,
                   ),
                 ),
@@ -352,9 +352,9 @@ class _ChartCard extends StatelessWidget {
                       maxLines: 1,
                       softWrap: false,
                       overflow: TextOverflow.visible,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: AppColors.inkSoft,
+                        color: context.colors.inkSoft,
                         fontFeatures: tabular,
                       ),
                     ),
@@ -382,7 +382,7 @@ class _Bar extends StatelessWidget {
       return Container(
         height: 2,
         decoration: BoxDecoration(
-          color: AppColors.line,
+          color: context.colors.line,
           borderRadius: BorderRadius.circular(1),
         ),
       );
@@ -403,7 +403,7 @@ class _Bar extends StatelessWidget {
               color: AppColors.benefit,
             ),
           if (value.salary > 0)
-            Container(height: salaryH, color: AppColors.salary),
+            Container(height: salaryH, color: context.colors.salary),
         ],
       ),
     );
@@ -419,18 +419,18 @@ class _InsightCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.benefitSoft,
+        color: context.colors.benefitSoft,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '파밍 일지',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: AppColors.benefitInk,
+              color: context.colors.benefitInk,
             ),
           ),
           const SizedBox(height: 8),
@@ -483,9 +483,9 @@ class _SummaryCard extends StatelessWidget {
                         ),
                         Text(
                           '${summaries[i].count}번',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
-                            color: AppColors.inkSoft,
+                            color: context.colors.inkSoft,
                             fontFeatures: tabular,
                           ),
                         ),
@@ -506,7 +506,7 @@ class _SummaryCard extends StatelessWidget {
                       child: LinearProgressIndicator(
                         value: benefit == 0 ? 0 : summaries[i].amount / benefit,
                         minHeight: 6,
-                        backgroundColor: AppColors.benefitSoft,
+                        backgroundColor: context.colors.benefitSoft,
                         color: AppColors.benefit,
                       ),
                     ),
@@ -529,13 +529,13 @@ class _NoBenefits extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: context.colors.card,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: const Text(
+      child: Text(
         '이 기간에 파밍한 혜택이 없어요',
         textAlign: TextAlign.center,
-        style: TextStyle(color: AppColors.inkSoft),
+        style: TextStyle(color: context.colors.inkSoft),
       ),
     );
   }
@@ -549,10 +549,10 @@ class _EmptyPeriod extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: context.colors.card,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: const Column(
+      child: Column(
         children: [
           Text('🌾', style: TextStyle(fontSize: 30)),
           SizedBox(height: 8),
@@ -563,7 +563,7 @@ class _EmptyPeriod extends StatelessWidget {
           SizedBox(height: 4),
           Text(
             '급여도 혜택도 쌓이지 않은 기간이에요',
-            style: TextStyle(fontSize: 13, color: AppColors.inkSoft),
+            style: TextStyle(fontSize: 13, color: context.colors.inkSoft),
           ),
         ],
       ),

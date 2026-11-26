@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'app_store.dart';
@@ -36,10 +37,27 @@ class _SalaryFarmingAppState extends State<SalaryFarmingApp> {
 
   @override
   Widget build(BuildContext context) {
+    // 테마를 바꾸면 앱 전체가 새 색으로 부드럽게 바뀐다(MaterialApp 기본 테마 전환).
+    return ListenableBuilder(
+      listenable: store,
+      builder: (context, _) => _buildApp(),
+    );
+  }
+
+  Widget _buildApp() {
     return MaterialApp(
       title: '월급파밍',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
+      darkTheme: buildTheme(dark: true),
+      themeMode: store.darkTheme ? ThemeMode.dark : ThemeMode.light,
+      // 앱바가 없는 화면(홈 등)에서도 상태 표시줄 글자가 바탕과 반대 색이 되게 한다.
+      builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+        value: store.darkTheme
+            ? SystemUiOverlayStyle.light
+            : SystemUiOverlayStyle.dark,
+        child: child!,
+      ),
       locale: const Locale('ko', 'KR'),
       supportedLocales: const [Locale('ko', 'KR')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
