@@ -24,6 +24,13 @@ Future<void> loadFont(String family, List<String> paths) async {
   await loader.load();
 }
 
+/// 홈의 월 누적 금액은 늘 오르므로 pumpAndSettle 대신 시간을 정해 넘긴다.
+Future<void> settle(WidgetTester tester) async {
+  for (var i = 0; i < 20; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}
+
 void main() {
   setUpAll(() async {
     final pretendard = [
@@ -262,10 +269,10 @@ void main() {
 
       await tester.pumpWidget(SalaryFarmingApp(store: store));
       await tester.pump(const Duration(milliseconds: 600));
-      await tester.pumpAndSettle();
+      await settle(tester);
       await shot(tester, name);
       await tester.drag(find.byType(ListView), const Offset(0, -620));
-      await tester.pumpAndSettle();
+      await settle(tester);
       await shot(tester, '${name}_scrolled');
       await tester.pumpWidget(const SizedBox.shrink());
     });
@@ -348,29 +355,29 @@ void main() {
       now = DateTime(2026, 11, day, 10, 0);
       await store.credit(store.templates.firstWhere((t) => t.id == id));
     }
-    now = DateTime(2026, 11, 26, 19, 30); // 퇴근 후: 금액이 멈춰 있어야 pumpAndSettle 이 끝난다
+    now = DateTime(2026, 11, 26, 19, 30); // 퇴근 후
 
     await tester.pumpWidget(SalaryFarmingApp(store: store));
     await tester.pump(const Duration(milliseconds: 600));
-    await tester.pumpAndSettle();
+    await settle(tester);
     await shot(tester, '19_dark_home');
     await tester.drag(find.byType(ListView), const Offset(0, -620));
-    await tester.pumpAndSettle();
+    await settle(tester);
     await shot(tester, '19_dark_home_scrolled');
 
     await tester.tap(find.text('수확 결산'));
-    await tester.pumpAndSettle();
+    await settle(tester);
     await tester.tap(find.text('월간'));
-    await tester.pumpAndSettle();
+    await settle(tester);
     await shot(tester, '20_dark_stats_month');
 
     await tester.tap(find.text('설정'));
-    await tester.pumpAndSettle();
+    await settle(tester);
     await shot(tester, '21_dark_settings');
 
     // 설정의 테마 버튼으로 라이트로 돌아간다.
     await tester.tap(find.text('다크 모드'));
-    await tester.pumpAndSettle();
+    await settle(tester);
     expect(store.darkTheme, isFalse);
     expect(find.text('라이트 모드'), findsOneWidget);
     await shot(tester, '21b_settings_back_to_light');

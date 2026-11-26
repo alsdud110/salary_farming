@@ -167,6 +167,16 @@ void main() {
       expect(SalaryCalculator.expectedInMonth(s, DateTime(2026, 11, 26)), net);
     });
 
+    test('월 경과 비율은 근무 시간과 상관없이 한 달 내내 오른다', () {
+      expect(SalaryCalculator.monthElapsedRatio(DateTime(2026, 11, 1)), 0);
+      expect(SalaryCalculator.monthElapsedRatio(DateTime(2026, 11, 16)), 0.5);
+      // 새벽 3시(근무 전)에도 전날보다 오른다.
+      expect(
+        SalaryCalculator.monthElapsedRatio(DateTime(2026, 11, 26, 3)),
+        greaterThan(SalaryCalculator.monthElapsedRatio(DateTime(2026, 11, 25, 23))),
+      );
+    });
+
     test('예전 주급 데이터는 같은 하루치의 일당으로 읽는다', () {
       final s = WorkSettings.fromJson({
         'payAmount': 500000,

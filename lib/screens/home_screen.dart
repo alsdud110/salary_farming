@@ -138,7 +138,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       return store.salaryOn(n, n);
     }
 
-    final monthBefore = store.monthSalary(now) - store.salaryOn(now, now);
     final monthExpected = SalaryCalculator.expectedInMonth(
       settings,
       now,
@@ -185,9 +184,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             index: 3,
             child: _MonthCard(
               now: now,
-              valueAt: () => monthBefore + salaryAt(),
+              // 월 누적은 근무 시간과 상관없이 한 달 내내 고르게 쌓인다.
+              // shortcut: 이번 달 중간에 급여 설정을 바꾸면 바뀐 설정으로 달 전체를 다시 계산함, 지난 날을 지키려면 설정 이력으로 나눠 계산
+              valueAt: () =>
+                  monthExpected *
+                  SalaryCalculator.monthElapsedRatio(store.now()),
               expected: monthExpected,
-              growing: SalaryCalculator.isGrowing(settings, now),
+              growing: true,
             ),
           ),
           const SizedBox(height: 28),

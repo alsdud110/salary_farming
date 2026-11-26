@@ -100,6 +100,14 @@ class SalaryCalculator {
     return sum;
   }
 
+  /// [now] 가 속한 달이 1일 0시부터 얼마나 지났는지 0~1. 근무 시간과 상관없이 고르게 오른다.
+  static double monthElapsedRatio(DateTime now) {
+    final start = DateTime(now.year, now.month);
+    final end = DateTime(now.year, now.month + 1);
+    return now.difference(start).inMicroseconds /
+        end.difference(start).inMicroseconds;
+  }
+
   /// 하루에 급여가 쌓이는 시간(초).
   static int workSecondsPerDay(WorkSettings s) => s.paidMinutesPerDay * 60;
 
