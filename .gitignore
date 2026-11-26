@@ -46,3 +46,6 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# xcodebuild 로 직접 빌드할 때 생기는 결과물
+/ios/build/

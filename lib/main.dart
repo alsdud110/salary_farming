@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'app_store.dart';
+import 'home_widget_sync.dart';
 import 'motion.dart';
 import 'screens/root_screen.dart';
 import 'screens/setup_screen.dart';
@@ -13,6 +14,9 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final store = AppStore();
   await store.load();
+  // 설정·데이터가 바뀔 때마다 홈 화면 위젯에도 알린다.
+  syncHomeWidget(store);
+  store.addListener(() => syncHomeWidget(store));
   runApp(SalaryFarmingApp(store: store, splash: true));
 }
 
