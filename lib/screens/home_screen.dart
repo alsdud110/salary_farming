@@ -10,8 +10,8 @@ import '../motion.dart';
 import '../salary_calculator.dart';
 import '../theme.dart';
 import '../widgets/benefit_glyph.dart';
+import '../widgets/farm_burst.dart';
 import '../widgets/live_amount.dart';
-import '../widgets/rolling_amount.dart';
 import '../widgets/template_sheet.dart';
 
 /// 홈에 바로 놓는 혜택 수(한 줄). 나머지와 직접 추가는 "전체 보기"·"파밍하기" 시트에 있다.
@@ -32,8 +32,14 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Timer? _timer;
 
-  /// 방금 적립한 기록. 금액이 떠오르는 효과에 쓴다.
+  /// "전체 보기" 시트에서 방금 적립한 기록. 칸이 사라진 뒤라 수확 카드에서 금액을 띄운다.
   BenefitRecord? _justCredited;
+
+  /// 동전이 날아갈 곳: 수확 카드의 파밍 수익 금액.
+  final _benefitTargetKey = GlobalKey();
+
+  /// 파밍 효과를 보여줄지. 설정을 끄거나 기기의 동작 줄이기가 켜져 있으면 끈다.
+  bool get _effects => store.farmAnimation && !Motion.reduced(context);
 
   AppStore get store => widget.store;
 
@@ -75,14 +81,26 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _credit(BenefitTemplate t) async {
-    HapticFeedback.lightImpact();
+  /// 적립. 저장은 [AppStore.credit]이 하고, 여기서는 반응(진동·효과·알림)만 붙인다.
+  /// 효과는 저장을 기다리지 않고 바로 시작하며 터치를 막지 않아 연속으로 눌러도 늦어지지 않는다.
+  /// [tile]은 누른 칸(시트에서 고른 경우 null).
+  Future<void> _credit(BenefitTemplate t, [BuildContext? tile]) async {
+    if (store.farmHaptic) HapticFeedback.lightImpact();
+    final tileBox = tile?.findRenderObject() as RenderBox?;
+    if (_effects && tileBox != null) {
+      FarmBurst.show(
+        context,
+        from: tileBox,
+        to: _benefitTargetKey.currentContext?.findRenderObject() as RenderBox?,
+        amount: t.amount,
+      );
+    }
     final record = await store.credit(t);
     if (!mounted) return;
-    setState(() => _justCredited = record);
+    if (tileBox == null) setState(() => _justCredited = record);
     showAppSnackBar(
       context,
-      '${t.name} +${won(t.amount)} 파밍했어요',
+      farmMessage(t),
       actionLabel: '취소',
       onAction: () => store.removeRecord(record.id),
     );
@@ -152,6 +170,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               salaryAt: salaryAt,
               benefit: benefit,
               justCredited: _justCredited,
+              animate: _effects,
+              benefitKey: _benefitTargetKey,
             ),
           ),
           const SizedBox(height: 24),
@@ -283,6 +303,8 @@ class _HarvestCard extends StatelessWidget {
     required this.salaryAt,
     required this.benefit,
     required this.justCredited,
+    required this.animate,
+    required this.benefitKey,
   });
 
   final WorkSettings settings;
@@ -291,6 +313,10 @@ class _HarvestCard extends StatelessWidget {
   final double Function() salaryAt;
   final int benefit;
   final BenefitRecord? justCredited;
+
+  /// 파밍 수익이 바뀔 때 이전 금액에서 새 금액까지 올라가게 할지.
+  final bool animate;
+  final Key benefitKey;
 
   String get _hint {
     switch (phase) {
@@ -314,7 +340,21 @@ class _HarvestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 파밍 수익만 이전 값에서 새 값으로 올라가게 하고, 기본 수익은 지금 시각으로 매 프레임
+    // 계산한 값을 그대로 더한다. 그래서 효과 중에도 실시간 급여와 어긋나지 않고, 끝나면
+    // 저장된 금액과 정확히 같아진다.
+    return TweenAnimationBuilder<double>(
+      tween: Tween(end: benefit.toDouble()),
+      duration: animate ? const Duration(milliseconds: 600) : Duration.zero,
+      curve: Curves.easeOutCubic,
+      builder: (context, shown, _) => _build(shown),
+    );
+  }
+
+  Widget _build(double shownBenefit) {
     final growing = SalaryCalculator.isGrowing(settings, now);
+    final counting = shownBenefit != benefit;
+    final shownWon = shownBenefit.floor();
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
       decoration: surfaceBox(color: AppColors.field, radius: 24),
@@ -334,7 +374,7 @@ class _HarvestCard extends StatelessWidget {
               const SizedBox(width: 8),
               LiveDot(live: growing),
               const Spacer(),
-              _CreditPop(record: justCredited),
+              if (animate) _CreditPop(record: justCredited),
             ],
           ),
           const SizedBox(height: 8),
@@ -342,8 +382,8 @@ class _HarvestCard extends StatelessWidget {
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
             child: LiveAmount(
-              valueAt: () => salaryAt() + benefit,
-              running: growing,
+              valueAt: () => salaryAt() + shownBenefit,
+              running: growing || counting,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 40,
@@ -385,9 +425,12 @@ class _HarvestCard extends StatelessWidget {
                 Expanded(
                   child: _SplitValue(
                     label: '파밍 수익',
-                    child: RollingAmount(
-                      value: benefit,
-                      prefix: benefit > 0 ? '+' : '',
+                    child: Text(
+                      '${shownWon > 0 ? '+' : ''}${won(shownWon)}',
+                      key: benefitKey,
+                      maxLines: 1,
+                      semanticsLabel:
+                          '${benefit > 0 ? '+' : ''}${won(benefit)}',
                       style: const TextStyle(
                         color: AppColors.benefitOnDark,
                         fontSize: 20,
@@ -724,7 +767,9 @@ class _BenefitGrid extends StatelessWidget {
   });
 
   final List<BenefitTemplate> templates;
-  final ValueChanged<BenefitTemplate> onTap;
+
+  /// 누른 칸의 context도 넘겨 효과가 그 칸에서 시작하게 한다.
+  final void Function(BenefitTemplate, BuildContext) onTap;
   final ValueChanged<BenefitTemplate> onLongPress;
 
   @override
@@ -735,10 +780,12 @@ class _BenefitGrid extends StatelessWidget {
       gridDelegate: benefitGridDelegate(context),
       children: [
         for (final t in templates)
-          BenefitTile(
-            template: t,
-            onTap: () => onTap(t),
-            onLongPress: () => onLongPress(t),
+          Builder(
+            builder: (tile) => BenefitTile(
+              template: t,
+              onTap: () => onTap(t, tile),
+              onLongPress: () => onLongPress(t),
+            ),
           ),
       ],
     );
@@ -924,6 +971,16 @@ class _FarmSheet extends StatefulWidget {
 class _FarmSheetState extends State<_FarmSheet> {
   BenefitCategory? _filter;
 
+  /// 닫히는 동안 한 번 더 눌러도 두 번 닫히거나(아래 화면까지 닫힘) 두 번 적립되지 않게.
+  bool _closing = false;
+
+  void _close([BenefitTemplate? picked, VoidCallback? then]) {
+    if (_closing) return;
+    _closing = true;
+    Navigator.pop(context, picked);
+    then?.call();
+  }
+
   @override
   Widget build(BuildContext context) {
     final templates = widget.store.templatesByFrequency
@@ -947,7 +1004,7 @@ class _FarmSheetState extends State<_FarmSheet> {
               ),
               IconButton(
                 tooltip: '닫기',
-                onPressed: () => Navigator.pop(context),
+                onPressed: _close,
                 icon: const Icon(Icons.close, color: AppColors.inkSoft),
               ),
             ],
@@ -985,18 +1042,10 @@ class _FarmSheetState extends State<_FarmSheet> {
               for (final t in templates)
                 BenefitTile(
                   template: t,
-                  onTap: () => Navigator.pop(context, t),
-                  onLongPress: () {
-                    Navigator.pop(context);
-                    widget.onEdit(t);
-                  },
+                  onTap: () => _close(t),
+                  onLongPress: () => _close(null, () => widget.onEdit(t)),
                 ),
-              AddBenefitTile(
-                onTap: () {
-                  Navigator.pop(context);
-                  widget.onAdd();
-                },
-              ),
+              AddBenefitTile(onTap: () => _close(null, widget.onAdd)),
             ],
           ),
         ],

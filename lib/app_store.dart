@@ -30,6 +30,8 @@ class AppStore extends ChangeNotifier {
   AppStore({DateTime Function()? clock}) : _clock = clock ?? DateTime.now;
 
   static const _key = 'salary_farming_state_v1';
+  static const _animationKey = 'farm_effect_animation';
+  static const _hapticKey = 'farm_effect_haptic';
 
   final DateTime Function() _clock;
   SharedPreferences? _prefs;
@@ -38,6 +40,8 @@ class AppStore extends ChangeNotifier {
   List<BenefitTemplate> _templates = [];
   List<BenefitRecord> _records = [];
   int _seq = 0;
+  bool _farmAnimation = true;
+  bool _farmHaptic = true;
 
   DateTime now() => _clock();
 
@@ -46,6 +50,13 @@ class AppStore extends ChangeNotifier {
       _history.isEmpty ? null : _history.last.settings;
   List<BenefitTemplate> get templates => List.unmodifiable(_templates);
   List<BenefitRecord> get records => List.unmodifiable(_records);
+
+  /// 적립할 때 동전·금액 효과와 금액이 올라가는 애니메이션을 보여줄지. 기본 켜짐.
+  /// 기기의 "동작 줄이기"가 켜져 있으면 이 값과 상관없이 효과를 끈다(화면에서 판단).
+  bool get farmAnimation => _farmAnimation;
+
+  /// 적립할 때 가볍게 진동할지. 기본 켜짐.
+  bool get farmHaptic => _farmHaptic;
 
   /// 홈에 놓는 순서: 사용 빈도가 높은 것부터.
   List<BenefitTemplate> get templatesByFrequency {
@@ -59,6 +70,8 @@ class AppStore extends ChangeNotifier {
 
   Future<void> load() async {
     _prefs = await SharedPreferences.getInstance();
+    _farmAnimation = _prefs!.getBool(_animationKey) ?? true;
+    _farmHaptic = _prefs!.getBool(_hapticKey) ?? true;
     final raw = _prefs!.getString(_key);
     if (raw == null) {
       _templates = [...defaultTemplates];
@@ -244,6 +257,21 @@ class AppStore extends ChangeNotifier {
   Future<void> removeTemplate(String id) async {
     _templates.removeWhere((t) => t.id == id);
     await _save();
+  }
+
+  // ---- 파밍 효과 ----
+
+  /// 기기 취향이라 급여·기록과 따로 저장하고, 모든 데이터 지우기에도 남긴다.
+  Future<void> setFarmAnimation(bool on) async {
+    _farmAnimation = on;
+    notifyListeners();
+    await _prefs?.setBool(_animationKey, on);
+  }
+
+  Future<void> setFarmHaptic(bool on) async {
+    _farmHaptic = on;
+    notifyListeners();
+    await _prefs?.setBool(_hapticKey, on);
   }
 
   // ---- 초기화 ----

@@ -110,6 +110,8 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
+              _FarmEffectsCard(store: store),
+              const SizedBox(height: 24),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -157,6 +159,50 @@ class SettingsScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// 파밍 효과 켜고 끄기.
+class _FarmEffectsCard extends StatelessWidget {
+  const _FarmEffectsCard({required this.store});
+
+  final AppStore store;
+
+  @override
+  Widget build(BuildContext context) {
+    final reduced = Motion.reduced(context);
+    const padding = EdgeInsets.symmetric(horizontal: 16, vertical: 6);
+    return Card(
+      child: Column(
+        children: [
+          SwitchListTile(
+            contentPadding: padding,
+            title: const Text(
+              '파밍 애니메이션',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            subtitle: Text(
+              reduced
+                  ? '기기에서 동작 줄이기를 켜 두어 움직임 없이 보여줘요'
+                  : '적립할 때 동전이 날아가고 금액이 올라가요',
+            ),
+            value: store.farmAnimation,
+            onChanged: store.setFarmAnimation,
+          ),
+          const Divider(indent: 16, endIndent: 16),
+          SwitchListTile(
+            contentPadding: padding,
+            title: const Text(
+              '햅틱 피드백',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            subtitle: const Text('적립할 때 가볍게 진동해요'),
+            value: store.farmHaptic,
+            onChanged: store.setFarmHaptic,
+          ),
+        ],
+      ),
     );
   }
 }
