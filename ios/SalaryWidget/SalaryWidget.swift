@@ -13,7 +13,7 @@ struct RefreshIntent: AppIntent {
 }
 
 // 앱(lib/home_widget_sync.dart)이 공유 저장소에 써 두는 달별 예상 실수령.
-let appGroup = "group.com.salaryfarming.salaryFarming"
+let appGroup = "group.com.salaryfarming.app"
 
 struct PayMonth: Decodable {
   let start: Double

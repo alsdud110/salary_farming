@@ -22,7 +22,7 @@ import WidgetKit
           result(FlutterMethodNotImplemented)
           return
         }
-        UserDefaults(suiteName: "group.com.salaryfarming.salaryFarming")?.set(json, forKey: "months")
+        UserDefaults(suiteName: "group.com.salaryfarming.app")?.set(json, forKey: "months")
         WidgetCenter.shared.reloadAllTimelines()
         result(nil)
       }
