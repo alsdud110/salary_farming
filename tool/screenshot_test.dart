@@ -271,6 +271,56 @@ void main() {
     });
   }
 
+  // 일간: 점심시간에 몰린 혜택은 아이콘 하나 + 개수, 누르면 펼쳐진다.
+  testWidgets('09b_stats_day_cluster', (tester) async {
+    tester.view.physicalSize = const Size(824, 1830);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    SharedPreferences.setMockInitialValues({});
+    var now = DateTime(2026, 11, 2, 9, 0);
+    final store = AppStore(clock: () => now);
+    await store.load();
+    await store.saveSettings(
+      const WorkSettings(
+        jobType: JobType.fullTime,
+        payBasis: PayBasis.annualGross,
+        payAmount: 40000000,
+        nonTaxableMonthly: WorkSettings.defaultNonTaxableMonthly,
+        workWeekdays: {1, 2, 3, 4, 5},
+        startMinute: 9 * 60,
+        endMinute: 18 * 60,
+        breakStartMinute: 12 * 60,
+        breakEndMinute: 13 * 60,
+      ),
+    );
+    for (final (h, m, id) in [
+      (9, 10, 'd_coffee'),
+      (12, 0, 'd_lunch'),
+      (12, 5, 'd_snack'),
+      (12, 15, 'd_drink'),
+      (15, 30, 'd_coffee'),
+    ]) {
+      now = DateTime(2026, 11, 26, h, m);
+      await store.credit(store.templates.firstWhere((t) => t.id == id));
+    }
+    now = DateTime(2026, 11, 26, 19, 30);
+    await tester.pumpWidget(SalaryFarmingApp(store: store));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.tap(find.text('수확 결산'));
+    await tester.pumpAndSettle();
+    await shot(tester, '09b_stats_day_cluster');
+    await tester.tap(find.bySemanticsLabel(RegExp('점심 식대 외 2개')));
+    await tester.pumpAndSettle();
+    await shot(tester, '09c_stats_day_cluster_open');
+    await tester.tap(find.text('주간'));
+    await tester.pumpAndSettle();
+    await shot(tester, '10b_stats_week_grouped');
+    await tester.tap(find.bySemanticsLabel(RegExp('탕비실 커피 외 4개')));
+    await tester.pumpAndSettle();
+    await shot(tester, '10c_stats_week_open');
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   // 다크 테마: 홈 · 수확 결산(월간) · 설정 · 혜택 시트 · 온보딩 급여 입력.
   testWidgets('dark', (tester) async {
     tester.view.physicalSize = const Size(824, 1830);

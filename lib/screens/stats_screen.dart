@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../app_store.dart';
 import '../format.dart';
+import '../models.dart';
 import '../period.dart';
 import '../motion.dart';
 import '../theme.dart';
 import '../widgets/benefit_glyph.dart';
+import '../widgets/farm_charts.dart';
+import '../widgets/top_benefits.dart';
 import 'share_screen.dart';
 
 class StatsScreen extends StatefulWidget {
@@ -41,6 +44,69 @@ class _StatsScreenState extends State<StatsScreen> {
     );
   }
 
+  String _chartTitle(Period period, DateTime now) {
+    switch (period.kind) {
+      case PeriodKind.day:
+        return dateOnly(now) == period.from ? '오늘의 파밍' : '이날의 파밍';
+      case PeriodKind.week:
+        return '요일별 파밍';
+      case PeriodKind.month:
+        return '${period.from.month}월 파밍 밭';
+      case PeriodKind.year:
+        return '달마다 파밍';
+    }
+  }
+
+  bool _isWorkDay(DateTime day) =>
+      store.settingsFor(day)?.workWeekdays.contains(day.weekday) ?? false;
+
+  /// 기간 종류마다 다른 그림. 모두 파밍 수익만 그린다.
+  Widget _chart(Period period, DateTime now) {
+    final today = dateOnly(now);
+    switch (period.kind) {
+      case PeriodKind.day:
+        final day = period.from;
+        final settings = store.settingsFor(day);
+        final working = _isWorkDay(day);
+        return DayTimeline(
+          records: store.recordsBetween(day, day),
+          startMinute: working ? settings!.startMinute : null,
+          endMinute: working ? settings!.endMinute : null,
+          nowMinute: day == today ? now.hour * 60 + now.minute : null,
+        );
+      case PeriodKind.week:
+        return WeekStacks(
+          today: today,
+          days: [
+            for (final b in period.buckets)
+              (b.from, store.recordsBetween(b.from, b.from)),
+          ],
+        );
+      case PeriodKind.month:
+        final days = period.buckets.map((b) => b.from).toList();
+        final current =
+            period.from.year == now.year && period.from.month == now.month;
+        return FarmField(
+          month: period.from,
+          amounts: [for (final d in days) store.benefitBetween(d, d)],
+          workDays: [for (final d in days) _isWorkDay(d)],
+          lastDay: current ? now.day : null,
+          today: current ? now.day : null,
+        );
+      case PeriodKind.year:
+        return YearGrid(
+          currentMonth: period.from.year == now.year ? now.month : null,
+          amounts: [
+            for (final b in period.buckets)
+              // 아직 오지 않은 달, 월급파밍을 쓰기 전 달은 빈칸
+              b.from.isAfter(today) || store.settingsFor(b.to) == null
+                  ? null
+                  : store.benefitBetween(b.from, b.to),
+          ],
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -51,7 +117,8 @@ class _StatsScreenState extends State<StatsScreen> {
         final totals = store.totals(period.from, period.to, at: now);
         final summaries = store.summarize(period.from, period.to);
         final insights = buildInsights(totals, summaries);
-        final buckets = period.buckets;
+        final prev = period.previous;
+        final prevTotals = store.totals(prev.from, prev.to, at: now);
 
         return SafeArea(
           bottom: false,
@@ -103,24 +170,23 @@ class _StatsScreenState extends State<StatsScreen> {
                 ],
               ),
               const SizedBox(height: 8),
-              _TotalsCard(totals: totals),
+              _HarvestHero(
+                kind: period.kind,
+                totals: totals,
+                previous: prevTotals.isEmpty ? null : prevTotals,
+              ),
               if (totals.isEmpty) ...[
                 const SizedBox(height: 16),
                 const _EmptyPeriod(),
               ] else ...[
-                if (buckets.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  _ChartCard(
-                    period: period,
-                    values: [
-                      for (final b in buckets)
-                        store.totals(b.from, b.to, at: now),
-                    ],
-                  ),
-                ],
+                const SizedBox(height: 16),
+                _ChartCard(
+                  title: _chartTitle(period, now),
+                  child: _chart(period, now),
+                ),
                 if (insights.isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  _InsightCard(lines: insights),
+                  _InsightPager(lines: insights),
                 ],
                 const SizedBox(height: 28),
                 const Padding(
@@ -133,8 +199,17 @@ class _StatsScreenState extends State<StatsScreen> {
                 const SizedBox(height: 12),
                 if (summaries.isEmpty)
                   const _NoBenefits()
-                else
-                  _SummaryCard(summaries: summaries, benefit: totals.benefit),
+                else ...[
+                  TopBenefitRow(summaries: summaries),
+                  // 4위부터는 목록으로
+                  if (summaries.length > 3) ...[
+                    const SizedBox(height: 12),
+                    _SummaryCard(
+                      summaries: summaries.skip(3).toList(),
+                      benefit: totals.benefit,
+                    ),
+                  ],
+                ],
               ],
               const SizedBox(height: 24),
               OutlinedButton.icon(
@@ -150,103 +225,95 @@ class _StatsScreenState extends State<StatsScreen> {
   }
 }
 
-class _TotalsCard extends StatelessWidget {
-  const _TotalsCard({required this.totals});
+/// 맨 위 카드: 파밍 수익을 가장 크게, 지난 기간과 비교, 아래에 총 수확·기본 수익.
+class _HarvestHero extends StatelessWidget {
+  const _HarvestHero({
+    required this.kind,
+    required this.totals,
+    required this.previous,
+  });
+
+  final PeriodKind kind;
   final PeriodTotals totals;
+
+  /// 지난 기간 합계. 기록이 없으면 null(비교 문구를 숨긴다).
+  final PeriodTotals? previous;
+
+  String? get _compare {
+    final p = previous;
+    if (p == null) return null;
+    final (name, with_) = switch (kind) {
+      PeriodKind.day => ('어제', '어제와'),
+      PeriodKind.week => ('지난주', '지난주와'),
+      PeriodKind.month => ('지난달', '지난달과'),
+      PeriodKind.year => ('작년', '작년과'),
+    };
+    final diff = totals.benefit - p.benefit;
+    if (diff == 0) return '$with_ 같아요';
+    return diff > 0
+        ? '$name보다 +${won(diff)} 더 챙겼어요'
+        : '$name보다 ${won(-diff)} 적어요';
+  }
 
   @override
   Widget build(BuildContext context) {
-    final total = totals.total;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '총 수확',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: context.colors.inkSoft,
+    final compare = _compare;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+      decoration: surfaceBox(color: AppColors.field, radius: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '파밍 수익',
+            style: TextStyle(
+              color: AppColors.fieldMuted,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 6),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '${totals.benefit > 0 ? '+' : ''}${won(totals.benefit)}',
+              style: const TextStyle(
+                color: AppColors.benefitOnDark,
+                fontSize: 38,
+                height: 1.2,
+                fontWeight: FontWeight.w600,
+                fontFeatures: tabular,
+                letterSpacing: -0.5,
               ),
             ),
+          ),
+          if (compare != null) ...[
             const SizedBox(height: 4),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                won(total),
-                style: const TextStyle(
-                  fontSize: 38,
-                  height: 1.2,
-                  fontWeight: FontWeight.w600,
-                  fontFeatures: tabular,
-                  letterSpacing: -0.5,
-                ),
+            Text(
+              compare,
+              style: const TextStyle(
+                color: AppColors.fieldMuted,
+                fontSize: 13,
+                fontFeatures: tabular,
               ),
-            ),
-            const SizedBox(height: 16),
-            // 급여와 혜택이 총액에서 차지하는 몫.
-            ClipRRect(
-              borderRadius: BorderRadius.circular(5),
-              child: SizedBox(
-                height: 10,
-                child: total == 0
-                    ? ColoredBox(color: context.colors.line)
-                    : Row(
-                        // 색 조각이 막대 높이를 꽉 채우게 한다(안 그러면 높이 0으로 안 보인다).
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // 원 단위 금액을 그대로 비율로 쓰면 값이 너무 커서 막대가
-                          // 그려지지 않는다. 1000 분율로 줄여 쓴다.
-                          if (totals.salary > 0)
-                            Expanded(
-                              flex: (totals.salary * 1000 / total)
-                                  .round()
-                                  .clamp(1, 1000),
-                              child: ColoredBox(color: context.colors.salary),
-                            ),
-                          if (totals.salary > 0 && totals.benefit > 0)
-                            const SizedBox(width: 2),
-                          if (totals.benefit > 0)
-                            Expanded(
-                              flex: (totals.benefit * 1000 / total)
-                                  .round()
-                                  .clamp(1, 1000),
-                              child: const ColoredBox(color: AppColors.benefit),
-                            ),
-                        ],
-                      ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            _LegendRow(
-              color: context.colors.salary,
-              label: '기본 수익',
-              value: won(totals.salary),
-            ),
-            const SizedBox(height: 8),
-            _LegendRow(
-              color: AppColors.benefit,
-              label: '파밍 수익',
-              value: '${totals.benefit > 0 ? '+' : ''}${won(totals.benefit)}',
             ),
           ],
-        ),
+          const SizedBox(height: 16),
+          const Divider(height: 1, color: AppColors.darkTrack),
+          const SizedBox(height: 14),
+          _HeroRow(label: '총 수확', value: won(totals.total)),
+          const SizedBox(height: 6),
+          _HeroRow(label: '기본 수익', value: won(totals.salary)),
+        ],
       ),
     );
   }
 }
 
-class _LegendRow extends StatelessWidget {
-  const _LegendRow({
-    required this.color,
-    required this.label,
-    required this.value,
-  });
+class _HeroRow extends StatelessWidget {
+  const _HeroRow({required this.label, required this.value});
 
-  final Color color;
   final String label;
   final String value;
 
@@ -254,23 +321,25 @@ class _LegendRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(3),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(label, style: const TextStyle(fontSize: 15)),
-        const Spacer(),
         Text(
-          value,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            fontFeatures: tabular,
+          label,
+          style: const TextStyle(color: AppColors.fieldMuted, fontSize: 14),
+        ),
+        const SizedBox(width: 12),
+        // 큰 글자 설정에서는 금액이 줄어들어 한 줄에 들어간다.
+        Expanded(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                fontFeatures: tabular,
+              ),
+            ),
           ),
         ),
       ],
@@ -278,90 +347,27 @@ class _LegendRow extends StatelessWidget {
   }
 }
 
-/// 구간별 급여(풀색)와 혜택(곡식색)을 쌓은 막대 그래프.
+/// 기간별 그림을 담는 카드.
 class _ChartCard extends StatelessWidget {
-  const _ChartCard({required this.period, required this.values});
+  const _ChartCard({required this.title, required this.child});
 
-  final Period period;
-  final List<PeriodTotals> values;
+  final String title;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final buckets = period.buckets;
-    final max = values.fold(0, (m, v) => v.total > m ? v.total : m);
-    const chartHeight = 120.0;
-    final gap = buckets.length > 12 ? 2.0 : 6.0;
-
     return Card(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Text(
-                  period.kind == PeriodKind.year ? '달마다' : '날마다',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  '가장 많은 구간 ${won(max)}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: context.colors.inkSoft,
-                    fontFeatures: tabular,
-                  ),
-                ),
-              ],
+            Text(
+              title,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 16),
-            Semantics(
-              label: '구간별 급여와 혜택 막대 그래프',
-              child: SizedBox(
-                height: chartHeight,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    for (var i = 0; i < values.length; i++) ...[
-                      if (i > 0) SizedBox(width: gap),
-                      Expanded(
-                        child: _Bar(
-                          value: values[i],
-                          max: max,
-                          height: chartHeight,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                for (var i = 0; i < buckets.length; i++) ...[
-                  if (i > 0) SizedBox(width: gap),
-                  Expanded(
-                    child: Text(
-                      period.bucketLabel(buckets[i]),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      softWrap: false,
-                      overflow: TextOverflow.visible,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: context.colors.inkSoft,
-                        fontFeatures: tabular,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
+            const SizedBox(height: 14),
+            child,
           ],
         ),
       ),
@@ -369,77 +375,116 @@ class _ChartCard extends StatelessWidget {
   }
 }
 
-class _Bar extends StatelessWidget {
-  const _Bar({required this.value, required this.max, required this.height});
-
-  final PeriodTotals value;
-  final int max;
-  final double height;
-
-  @override
-  Widget build(BuildContext context) {
-    if (max == 0 || value.total == 0) {
-      return Container(
-        height: 2,
-        decoration: BoxDecoration(
-          color: context.colors.line,
-          borderRadius: BorderRadius.circular(1),
-        ),
-      );
-    }
-    // 혜택 최소 높이만큼 여유를 두어 막대가 그래프 높이를 넘지 않게 한다.
-    final usable = height - 2;
-    final salaryH = usable * value.salary / max;
-    final benefitH = usable * value.benefit / max;
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (value.benefit > 0)
-            Container(
-              // 아주 작은 혜택도 보이도록 최소 높이를 준다.
-              height: benefitH < 2 ? 2 : benefitH,
-              color: AppColors.benefit,
-            ),
-          if (value.salary > 0)
-            Container(height: salaryH, color: context.colors.salary),
-        ],
-      ),
-    );
-  }
-}
-
-class _InsightCard extends StatelessWidget {
-  const _InsightCard({required this.lines});
+/// 파밍 일지: 한 줄씩 크게, 옆으로 넘겨 본다.
+class _InsightPager extends StatefulWidget {
+  const _InsightPager({required this.lines});
   final List<String> lines;
 
   @override
+  State<_InsightPager> createState() => _InsightPagerState();
+}
+
+class _InsightPagerState extends State<_InsightPager> {
+  final _pages = PageController(viewportFraction: 0.9);
+  int _page = 0;
+
+  @override
+  void dispose() {
+    _pages.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: context.colors.benefitSoft,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '파밍 일지',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: context.colors.benefitInk,
-            ),
+    final c = context.colors;
+    final lines = widget.lines;
+    const body = TextStyle(
+      fontFamily: appFont,
+      fontSize: 17,
+      height: 1.45,
+      fontWeight: FontWeight.w600,
+    );
+    final scaler = MediaQuery.textScalerOf(context);
+    return Column(
+      children: [
+        LayoutBuilder(
+          builder: (context, box) {
+            // 가장 긴 문구가 들어가는 높이로 맞춘다(카드 폭 = 화면의 90% - 여백).
+            final textWidth = box.maxWidth * 0.9 - 10 - 36;
+            final tallest = lines
+                .map(
+                  (l) => (TextPainter(
+                    text: TextSpan(text: l, style: body),
+                    textDirection: TextDirection.ltr,
+                    textScaler: scaler,
+                    maxLines: 3,
+                  )..layout(maxWidth: textWidth)).height,
+                )
+                .fold(0.0, (m, h) => h > m ? h : m);
+            final height = 16 + scaler.scale(12) * 1.4 + 6 + tallest + 16 + 2;
+            return SizedBox(
+              height: height,
+              child: PageView.builder(
+                controller: _pages,
+                padEnds: false,
+                itemCount: lines.length,
+                onPageChanged: (i) => setState(() => _page = i),
+                itemBuilder: (context, i) => Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+                    decoration: BoxDecoration(
+                      color: c.benefitSoft,
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '파밍 일지 ${i + 1}/${lines.length}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: c.benefitInk,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Expanded(
+                          child: Text(
+                            lines[i],
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: body,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+        if (lines.length > 1) ...[
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (var i = 0; i < lines.length; i++)
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  width: i == _page ? 16 : 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: i == _page ? AppColors.benefit : c.line,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(height: 8),
-          for (var i = 0; i < lines.length; i++) ...[
-            if (i > 0) const SizedBox(height: 8),
-            Text(lines[i], style: const TextStyle(fontSize: 15, height: 1.45)),
-          ],
         ],
-      ),
+      ],
     );
   }
 }

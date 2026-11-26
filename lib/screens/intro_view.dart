@@ -6,6 +6,7 @@ import '../motion.dart';
 import '../widgets/benefit_glyph.dart';
 import '../theme.dart';
 import '../widgets/brand_symbol.dart';
+import '../widgets/farm_charts.dart';
 
 /// 첫 실행 소개 3장. 마지막 장의 "내 정보 입력하기" 로 설정을 시작한다.
 /// 각 장의 데모 애니메이션은 그 장이 화면에 들어올 때마다 처음부터 재생된다.
@@ -558,7 +559,7 @@ class _BenefitTotal extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // 3장: 통계
 
-/// 일·월·연도별 결산 맛보기. 막대가 왼쪽부터 차례로 차오르고 합계가 함께 오른다.
+/// 결산 맛보기: 11월 파밍 밭이 1일부터 차례로 골드로 채워지고 파밍 수익이 함께 오른다.
 class _StatsDemo extends StatefulWidget {
   const _StatsDemo({required this.active});
 
@@ -570,21 +571,21 @@ class _StatsDemo extends StatefulWidget {
 
 class _StatsDemoState extends State<_StatsDemo>
     with SingleTickerProviderStateMixin {
-  // (월급, 챙긴 돈) 만원 단위. 월~일.
-  static const _week = [
-    (18.5, 1.4),
-    (18.5, 1.2),
-    (18.5, 1.9),
-    (18.5, 1.1),
-    (18.5, 2.3),
-    (0.0, 0.0),
-    (0.0, 0.0),
+  // 2026년 11월 날짜별 파밍 수익(원). 평일만, 쉬는 날은 0.
+  static final _month = DateTime(2026, 11);
+  static const _amounts = [
+    0, 12000, 3500, 0, 11500, 15500, 0, 0, 2000, 13500, //
+    10000, 1500, 23500, 0, 0, 12000, 3500, 11500, 0, 14000, //
+    0, 0, 10000, 2000, 25500, 12000, 3500, 0, 0, 11500,
   ];
-  static const _weekTotal = 1004000;
+  static final _total = _amounts.fold(0, (s, a) => s + a);
+  static final _workDays = [
+    for (var d = 1; d <= 30; d++) DateTime(2026, 11, d).weekday <= 5,
+  ];
 
   late final AnimationController _c = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1500),
+    duration: const Duration(milliseconds: 1800),
   );
 
   @override
@@ -618,8 +619,6 @@ class _StatsDemoState extends State<_StatsDemo>
 
   @override
   Widget build(BuildContext context) {
-    const maxValue = 21.0;
-    const barArea = 140.0;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -627,186 +626,44 @@ class _StatsDemoState extends State<_StatsDemo>
           animation: _c,
           builder: (context, _) {
             final t = _c.value;
-            final count = _segment(t, 0, 0.85, Curves.easeOutCubic);
+            final count = _segment(t, 0.1, 0.85, Curves.easeOutCubic);
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const _PeriodTabs(),
-                const SizedBox(height: 16),
-                Text(
-                  '이번 주 번 돈',
-                  style: TextStyle(color: context.colors.inkSoft),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  won((_weekTotal * count).round()),
-                  style: const TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w600,
-                    fontFeatures: tabular,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  // 막대가 튀어 올랐다 돌아오는 만큼 위쪽 여유를 둔다.
-                  height: barArea + 40,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      for (var i = 0; i < _week.length; i++)
-                        Expanded(
-                          child: _Bar(
-                            salary: barArea * _week[i].$1 / maxValue,
-                            benefit: barArea * _week[i].$2 / maxValue,
-                            // 막대마다 0.08씩 늦게 출발해 0.5 동안 차오른다.
-                            grow: _segment(
-                              t,
-                              0.08 * i,
-                              0.5,
-                              Curves.easeOutCubic,
-                            ),
-                            // 챙긴 돈은 월급 막대가 거의 찬 뒤 위에 얹힌다.
-                            cap: _segment(
-                              t,
-                              0.08 * i + 0.35,
-                              0.3,
-                              Curves.easeOutCubic,
-                            ),
-                            label: weekdayLabels[i],
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    _Legend(color: context.colors.salary, label: '기본 수익'),
-                    SizedBox(width: 16),
-                    _Legend(color: AppColors.benefit, label: '파밍 수익'),
+                    const Text(
+                      '11월 파밍 밭',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '+${won((_total * count).round())}',
+                      style: TextStyle(
+                        color: context.colors.benefitInk,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                        fontFeatures: tabular,
+                      ),
+                    ),
                   ],
+                ),
+                const SizedBox(height: 14),
+                FarmField(
+                  month: _month,
+                  amounts: _amounts,
+                  workDays: _workDays,
+                  reveal: _segment(t, 0, 0.9),
                 ),
               ],
             );
           },
         ),
       ),
-    );
-  }
-}
-
-class _Bar extends StatelessWidget {
-  const _Bar({
-    required this.salary,
-    required this.benefit,
-    required this.grow,
-    required this.cap,
-    required this.label,
-  });
-
-  final double salary;
-  final double benefit;
-  final double grow;
-  final double cap;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    // 곡선이 1을 넘지 않지만 혹시 모를 음수만 막는다.
-    final salaryH = (salary * grow).clamp(0.0, double.infinity);
-    final benefitH = (benefit * cap).clamp(0.0, double.infinity);
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        Container(
-          width: 18,
-          height: benefitH,
-          decoration: const BoxDecoration(
-            color: AppColors.benefit,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
-          ),
-        ),
-        Container(
-          width: 18,
-          height: salaryH,
-          decoration: BoxDecoration(
-            color: context.colors.salary,
-            borderRadius: BorderRadius.vertical(
-              top: Radius.circular(benefitH < 1 ? 4 : 0),
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: TextStyle(fontSize: 12, color: context.colors.inkSoft),
-        ),
-      ],
-    );
-  }
-}
-
-class _PeriodTabs extends StatelessWidget {
-  const _PeriodTabs();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        for (final (label, selected) in const [
-          ('일간', false),
-          ('주간', true),
-          ('월간', false),
-          ('연간', false),
-        ])
-          Expanded(
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 2),
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              decoration: BoxDecoration(
-                color: selected ? context.colors.inverse : context.colors.paper,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: selected ? Colors.white : context.colors.inkSoft,
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _Legend extends StatelessWidget {
-  const _Legend({required this.color, required this.label});
-
-  final Color color;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(3),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: TextStyle(fontSize: 12, color: context.colors.inkSoft),
-        ),
-      ],
     );
   }
 }

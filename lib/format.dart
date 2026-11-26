@@ -61,3 +61,11 @@ int? parseAmount(String text) {
   if (digits.isEmpty) return null;
   return int.tryParse(digits);
 }
+
+/// 좁은 칸용 짧은 금액. 2000 -> "2,000", 12500 -> "1.3만", 263000 -> "26만"
+String shortWon(int value) {
+  if (value < 10000) return comma(value);
+  final man = value / 10000;
+  final text = man < 10 ? man.toStringAsFixed(1) : man.round().toString();
+  return '${text.endsWith('.0') ? text.substring(0, text.length - 2) : text}만';
+}

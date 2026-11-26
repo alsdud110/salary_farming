@@ -11,8 +11,8 @@ import '../format.dart';
 import '../period.dart';
 import '../motion.dart';
 import '../theme.dart';
-import '../widgets/benefit_glyph.dart';
 import '../widgets/brand_symbol.dart';
+import '../widgets/top_benefits.dart';
 
 /// 결산 이미지에 무엇까지 보여줄지.
 enum ShareScope {
@@ -340,19 +340,7 @@ class SettlementCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (var i = 0; i < 3; i++) ...[
-                  if (i > 0) const SizedBox(width: 12),
-                  Expanded(
-                    child: i < top.length
-                        ? _TopBenefit(rank: i + 1, summary: top[i])
-                        : const SizedBox(),
-                  ),
-                ],
-              ],
-            ),
+            TopBenefitRow(summaries: top),
           ],
 
           // 파밍 일지 한마디: 말풍선
@@ -474,83 +462,6 @@ class _Split extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// 많이 파밍한 혜택 한 칸. 흰 바탕 위라 아이콘이 또렷하게 보인다.
-class _TopBenefit extends StatelessWidget {
-  const _TopBenefit({required this.rank, required this.summary});
-
-  final int rank;
-  final BenefitSummary summary;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = summary;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
-      decoration: surfaceBox(color: AppColors.card, radius: 18),
-      child: Column(
-        children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              BenefitGlyph(s.icon, size: 44, bare: true),
-              Positioned(
-                left: -6,
-                top: -4,
-                child: Container(
-                  width: 18,
-                  height: 18,
-                  alignment: Alignment.center,
-                  decoration: const BoxDecoration(
-                    color: AppColors.coin,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    '$rank',
-                    style: const TextStyle(
-                      color: AppColors.ink,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            s.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: AppColors.ink,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            '${s.count}번',
-            style: const TextStyle(color: AppColors.inkSoft, fontSize: 12),
-          ),
-          const SizedBox(height: 2),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              won(s.amount),
-              style: const TextStyle(
-                color: AppColors.benefitInk,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                fontFeatures: tabular,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
