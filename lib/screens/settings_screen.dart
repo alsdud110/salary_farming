@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../app_store.dart';
 import '../format.dart';
 import '../models.dart';
+import '../motion.dart';
 import '../theme.dart';
+import '../widgets/benefit_glyph.dart';
 import '../widgets/template_sheet.dart';
 import '../widgets/work_settings_form.dart';
 
@@ -13,13 +15,11 @@ class SettingsScreen extends StatelessWidget {
   final AppStore store;
 
   Future<void> _confirmReset(BuildContext context) async {
-    final ok = await showDialog<bool>(
+    final ok = await showAppDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('모든 데이터를 지울까요?'),
-        content: const Text(
-          '급여 설정, 혜택 템플릿, 적립 기록이 모두 사라지고 되살릴 수 없어요.',
-        ),
+        content: const Text('급여 설정, 혜택 템플릿, 적립 기록이 모두 사라지고 되살릴 수 없어요'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -27,7 +27,10 @@ class SettingsScreen extends StatelessWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('모두 지우기', style: TextStyle(color: AppColors.danger)),
+            child: const Text(
+              '모두 지우기',
+              style: TextStyle(color: AppColors.danger),
+            ),
           ),
         ],
       ),
@@ -56,21 +59,23 @@ class SettingsScreen extends StatelessWidget {
                 padding: EdgeInsets.fromLTRB(4, 4, 4, 12),
                 child: Text(
                   '설정',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
                 ),
               ),
               Card(
                 child: Column(
                   children: [
                     ListTile(
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 6,
+                      ),
                       title: const Text(
                         '급여와 근무 시간',
-                        style: TextStyle(fontWeight: FontWeight.w700),
+                        style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                       subtitle: Text(
-                        '${s.payCycle.label} ${wonReadable(s.payAmount)}\n'
+                        '${s.jobType.label} · ${s.payBasis.label} ${wonReadable(s.payAmount)}\n'
                         '$days · ${clock(s.startMinute)} – ${clock(s.endMinute)}',
                       ),
                       isThreeLine: true,
@@ -84,11 +89,13 @@ class SettingsScreen extends StatelessWidget {
                     ),
                     const Divider(indent: 16, endIndent: 16),
                     ListTile(
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 6,
+                      ),
                       title: const Text(
                         '혜택 템플릿',
-                        style: TextStyle(fontWeight: FontWeight.w700),
+                        style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                       subtitle: Text('${store.templates.length}개'),
                       trailing: const Icon(Icons.chevron_right),
@@ -116,7 +123,7 @@ class SettingsScreen extends StatelessWidget {
                       '기록은 이 기기에만 있어요',
                       style: TextStyle(
                         fontSize: 15,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w500,
                         color: AppColors.field,
                       ),
                     ),
@@ -134,7 +141,9 @@ class SettingsScreen extends StatelessWidget {
               const SizedBox(height: 24),
               OutlinedButton(
                 onPressed: () => _confirmReset(context),
-                style: OutlinedButton.styleFrom(foregroundColor: AppColors.danger),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.danger,
+                ),
                 child: const Text('모든 데이터 지우기'),
               ),
               const SizedBox(height: 24),
@@ -168,7 +177,11 @@ class EditSettingsScreen extends StatelessWidget {
           children: [
             const Text(
               '바꾼 설정은 오늘부터 적용돼요. 어제까지의 급여 기록은 그대로예요.',
-              style: TextStyle(fontSize: 13, height: 1.5, color: AppColors.inkSoft),
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.5,
+                color: AppColors.inkSoft,
+              ),
             ),
             const SizedBox(height: 20),
             WorkSettingsForm(
@@ -177,14 +190,11 @@ class EditSettingsScreen extends StatelessWidget {
               today: store.now(),
               onSubmit: (settings) async {
                 final navigator = Navigator.of(context);
-                final messenger = ScaffoldMessenger.of(context);
                 await store.saveSettings(settings);
+                if (!context.mounted) return;
+                // 앱 맨 위 레이어에 띄우므로 화면을 닫아도 토스트는 남는다.
+                showAppToast(context, '저장했어요. 오늘부터 새 기준으로 계산해요.');
                 navigator.pop();
-                messenger
-                  ..clearSnackBars()
-                  ..showSnackBar(const SnackBar(
-                    content: Text('저장했어요. 오늘부터 새 기준으로 계산해요.'),
-                  ));
               },
             ),
           ],
@@ -221,12 +231,12 @@ class TemplatesScreen extends StatelessWidget {
               children: [
                 for (final c in BenefitCategory.values) ...[
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(4, 16, 4, 10),
+                    padding: const EdgeInsets.fromLTRB(4, 16, 4, 12),
                     child: Text(
                       c.label,
                       style: const TextStyle(
                         fontSize: 15,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
@@ -234,8 +244,8 @@ class TemplatesScreen extends StatelessWidget {
                     store: store,
                     templates: all.where((t) => t.category == c).toList(),
                     emptyText: c == BenefitCategory.custom
-                        ? '아직 직접 만든 혜택이 없어요.'
-                        : '이 분류의 템플릿을 모두 지웠어요.',
+                        ? '아직 직접 만든 혜택이 없어요'
+                        : '이 분류의 템플릿을 모두 지웠어요',
                   ),
                 ],
               ],
@@ -264,7 +274,10 @@ class _TemplateGroup extends StatelessWidget {
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Text(emptyText, style: const TextStyle(color: AppColors.inkSoft)),
+          child: Text(
+            emptyText,
+            style: const TextStyle(color: AppColors.inkSoft),
+          ),
         ),
       );
     }
@@ -275,7 +288,7 @@ class _TemplateGroup extends StatelessWidget {
             if (i > 0) const Divider(indent: 16, endIndent: 16),
             ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              leading: Text(templates[i].icon, style: const TextStyle(fontSize: 24)),
+              leading: BenefitGlyph(templates[i].icon, size: 40),
               title: Text(
                 templates[i].name,
                 style: const TextStyle(fontWeight: FontWeight.w600),
@@ -288,7 +301,7 @@ class _TemplateGroup extends StatelessWidget {
                     won(templates[i].amount),
                     style: const TextStyle(
                       fontSize: 15,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w500,
                       fontFeatures: tabular,
                     ),
                   ),
@@ -296,7 +309,8 @@ class _TemplateGroup extends StatelessWidget {
                   const Icon(Icons.chevron_right, color: AppColors.inkSoft),
                 ],
               ),
-              onTap: () => showTemplateSheet(context, store, template: templates[i]),
+              onTap: () =>
+                  showTemplateSheet(context, store, template: templates[i]),
             ),
           ],
         ],

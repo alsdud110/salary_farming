@@ -1,3 +1,4 @@
+import 'benefit_icons.dart';
 import 'models.dart';
 
 /// 처음 실행할 때 넣어 주는 기본 혜택 템플릿.
@@ -27,7 +28,7 @@ const defaultTemplates = <BenefitTemplate>[
     icon: '🍪',
     amount: 1500,
     category: BenefitCategory.food,
-    frequency: UseFrequency.often,
+    frequency: UseFrequency.daily,
     isDefault: true,
   ),
   BenefitTemplate(
@@ -63,7 +64,7 @@ const defaultTemplates = <BenefitTemplate>[
     icon: '🔋',
     amount: 100,
     category: BenefitCategory.facility,
-    frequency: UseFrequency.daily,
+    frequency: UseFrequency.often,
     isDefault: true,
   ),
   BenefitTemplate(
@@ -113,9 +114,5 @@ const defaultTemplates = <BenefitTemplate>[
   ),
 ];
 
-/// 직접 만들 때 고를 수 있는 아이콘.
-const iconChoices = <String>[
-  '☕', '🍱', '🍪', '🥤', '🍜', '🍚', '🍕', '🍰', '🍎', '🧃',
-  '🎁', '🚕', '🚌', '🅿️', '🏋️', '💆', '🔋', '🖨️', '📚', '🎟️',
-  '💊', '🧴', '🧻', '☂️', '🎉', '💰', '🪙', '🌱',
-];
+/// 직접 만들 때 고를 수 있는 아이콘(저장 키). 순서는 아이콘 시트와 같다.
+final List<String> iconChoices = [for (final i in benefitIcons) i.key];

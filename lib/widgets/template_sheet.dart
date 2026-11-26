@@ -4,7 +4,9 @@ import '../app_store.dart';
 import '../default_templates.dart';
 import '../format.dart';
 import '../models.dart';
+import '../motion.dart';
 import '../theme.dart';
+import 'benefit_glyph.dart';
 
 /// 혜택 템플릿을 새로 만들거나 고치는 시트. [template] 이 null 이면 새로 만든다.
 Future<void> showTemplateSheet(
@@ -15,6 +17,13 @@ Future<void> showTemplateSheet(
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
+    // 상태 표시줄 아래에서 멈추고, 화면의 90% 까지만 올라와 뒤 배경이 늘 보이게 한다.
+    // (내용이 길면 시트 안에서 스크롤된다.)
+    useSafeArea: true,
+    constraints: BoxConstraints(
+      maxHeight: MediaQuery.sizeOf(context).height * 0.9,
+    ),
+    sheetAnimationStyle: Motion.sheet,
     backgroundColor: AppColors.paper,
     showDragHandle: true,
     builder: (_) => _TemplateSheet(store: store, template: template),
@@ -62,12 +71,12 @@ class _TemplateSheetState extends State<_TemplateSheet> {
     final name = _name.text.trim();
     final amount = parseAmount(_amount.text);
     setState(() {
-      _nameError = name.isEmpty ? '혜택 이름을 입력해 주세요.' : null;
+      _nameError = name.isEmpty ? '혜택 이름을 입력해 주세요' : null;
       _amountError = amount == null
-          ? '금액을 입력해 주세요.'
+          ? '금액을 입력해 주세요'
           : amount <= 0
-              ? '금액은 1원 이상이어야 해요.'
-              : null;
+          ? '금액은 1원 이상이어야 해요'
+          : null;
     });
     if (_nameError != null || _amountError != null) return;
 
@@ -80,23 +89,25 @@ class _TemplateSheetState extends State<_TemplateSheet> {
         frequency: _frequency,
       );
     } else {
-      await widget.store.updateTemplate(t.copyWith(
-        name: name,
-        icon: _icon,
-        amount: amount,
-        frequency: _frequency,
-      ));
+      await widget.store.updateTemplate(
+        t.copyWith(
+          name: name,
+          icon: _icon,
+          amount: amount,
+          frequency: _frequency,
+        ),
+      );
     }
     if (mounted) Navigator.pop(context);
   }
 
   Future<void> _delete() async {
     final t = widget.template!;
-    final ok = await showDialog<bool>(
+    final ok = await showAppDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('${t.name} 템플릿을 지울까요?'),
-        content: const Text('이미 적립한 기록은 그대로 남아요.'),
+        content: const Text('이미 적립한 기록은 그대로 남아요'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -116,10 +127,7 @@ class _TemplateSheetState extends State<_TemplateSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final icons = [
-      if (!iconChoices.contains(_icon)) _icon,
-      ...iconChoices,
-    ];
+    final icons = [if (!iconChoices.contains(_icon)) _icon, ...iconChoices];
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: SingleChildScrollView(
@@ -128,9 +136,24 @@ class _TemplateSheetState extends State<_TemplateSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              _isNew ? '내 혜택 만들기' : '혜택 고치기',
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+            // 제목 오른쪽에 닫기 버튼. 끌어내리거나 뒤 배경을 눌러도 닫힌다.
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _isNew ? '내 혜택 만들기' : '혜택 고치기',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: '닫기',
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close, color: AppColors.inkSoft),
+                ),
+              ],
             ),
             const SizedBox(height: 20),
             TextField(
@@ -157,23 +180,37 @@ class _TemplateSheetState extends State<_TemplateSheet> {
               ),
             ),
             const SizedBox(height: 20),
-            const Text('아이콘', style: TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final icon in icons)
-                  _IconChoice(
-                    icon: icon,
-                    selected: icon == _icon,
-                    onTap: () => setState(() => _icon = icon),
-                  ),
-              ],
+            const Text('아이콘', style: TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 12),
+            LayoutBuilder(
+              builder: (context, box) {
+                // 48 칸 + 간격 8 이 들어가는 만큼 열을 만들고, 남는 폭은 열마다 고르게 나눈다.
+                final cols = ((box.maxWidth + 8) / 56).floor().clamp(4, 10);
+                return GridView.count(
+                  crossAxisCount: cols,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                  children: [
+                    for (final icon in icons)
+                      Center(
+                        child: _IconChoice(
+                          icon: icon,
+                          selected: icon == _icon,
+                          onTap: () => setState(() => _icon = icon),
+                        ),
+                      ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 20),
-            const Text('얼마나 자주 받나요', style: TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 10),
+            const Text(
+              '얼마나 자주 받나요',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
             SegmentedButton<UseFrequency>(
               showSelectedIcon: false,
               segments: [
@@ -183,9 +220,9 @@ class _TemplateSheetState extends State<_TemplateSheet> {
               selected: {_frequency},
               onSelectionChanged: (v) => setState(() => _frequency = v.first),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             const Text(
-              '자주 받는 혜택일수록 홈 화면 앞쪽에 놓여요.',
+              '자주 받는 혜택일수록 홈 화면 앞쪽에 놓여요',
               style: TextStyle(fontSize: 12, color: AppColors.inkSoft),
             ),
             const SizedBox(height: 24),
@@ -235,7 +272,7 @@ class _IconChoice extends StatelessWidget {
         child: SizedBox(
           width: 48,
           height: 48,
-          child: Center(child: Text(icon, style: const TextStyle(fontSize: 22))),
+          child: Center(child: BenefitGlyph(icon, size: 32, bare: true)),
         ),
       ),
     );

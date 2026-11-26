@@ -105,10 +105,13 @@ class AppStore extends ChangeNotifier {
   // ---- 설정 ----
 
   /// 설정 저장. 오늘부터 새 설정으로 계산하고 지난 날은 예전 설정대로 둔다.
+  /// 맨 처음 설정은 이번 달 1일부터 적용해 이번 달 누적 월급이 바로 보이게 한다.
   Future<void> saveSettings(WorkSettings settings) async {
-    final today = dateOnly(now());
-    _history.removeWhere((e) => !e.effectiveFrom.isBefore(today));
-    _history.add(SettingsEntry(effectiveFrom: today, settings: settings));
+    final n = now();
+    final today = dateOnly(n);
+    final from = _history.isEmpty ? DateTime(n.year, n.month, 1) : today;
+    _history.removeWhere((e) => !e.effectiveFrom.isBefore(from));
+    _history.add(SettingsEntry(effectiveFrom: from, settings: settings));
     await _save();
   }
 
@@ -131,13 +134,19 @@ class AppStore extends ChangeNotifier {
     return SalaryCalculator.earnedOn(s, date, now);
   }
 
+  /// 이번 달 1일부터 [now] 까지 쌓인 급여.
+  double monthSalary(DateTime now) =>
+      _salaryBetween(DateTime(now.year, now.month, 1), now, now);
+
   double _salaryBetween(DateTime from, DateTime to, DateTime now) {
     var sum = 0.0;
     final today = dateOnly(now);
     final last = to.isAfter(today) ? today : dateOnly(to);
-    for (var d = dateOnly(from);
-        !d.isAfter(last);
-        d = DateTime(d.year, d.month, d.day + 1)) {
+    for (
+      var d = dateOnly(from);
+      !d.isAfter(last);
+      d = DateTime(d.year, d.month, d.day + 1)
+    ) {
       sum += salaryOn(d, now);
     }
     return sum;
@@ -212,14 +221,16 @@ class AppStore extends ChangeNotifier {
     required int amount,
     required UseFrequency frequency,
   }) async {
-    _templates.add(BenefitTemplate(
-      id: _newId('t'),
-      name: name,
-      icon: icon,
-      amount: amount,
-      category: BenefitCategory.custom,
-      frequency: frequency,
-    ));
+    _templates.add(
+      BenefitTemplate(
+        id: _newId('t'),
+        name: name,
+        icon: icon,
+        amount: amount,
+        category: BenefitCategory.custom,
+        frequency: frequency,
+      ),
+    );
     await _save();
   }
 

@@ -6,15 +6,24 @@ import 'package:flutter/services.dart';
 import '../app_store.dart';
 import '../format.dart';
 import '../models.dart';
+import '../motion.dart';
 import '../salary_calculator.dart';
 import '../theme.dart';
+import '../widgets/benefit_glyph.dart';
+import '../widgets/live_amount.dart';
 import '../widgets/rolling_amount.dart';
 import '../widgets/template_sheet.dart';
 
+/// 홈에 바로 놓는 혜택 수(한 줄). 나머지와 직접 추가는 "전체 보기"·"파밍하기" 시트에 있다.
+const _homeTileCount = 3;
+
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.store});
+  const HomeScreen({super.key, required this.store, this.onOpenSettings});
 
   final AppStore store;
+
+  /// 오른쪽 위 설정 버튼.
+  final VoidCallback? onOpenSettings;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -22,7 +31,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Timer? _timer;
-  BenefitCategory? _filter;
 
   /// 방금 적립한 기록. 금액이 떠오르는 효과에 쓴다.
   BenefitRecord? _justCredited;
@@ -72,122 +80,126 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final record = await store.credit(t);
     if (!mounted) return;
     setState(() => _justCredited = record);
-    final messenger = ScaffoldMessenger.of(context);
-    messenger
-      ..clearSnackBars()
-      ..showSnackBar(SnackBar(
-        duration: const Duration(seconds: 4),
-        content: Text('${t.icon} ${t.name} +${won(t.amount)}'),
-        action: SnackBarAction(
-          label: '취소',
-          onPressed: () => store.removeRecord(record.id),
-        ),
-      ));
+    showAppSnackBar(
+      context,
+      '${t.name} +${won(t.amount)} 파밍했어요',
+      actionLabel: '취소',
+      onAction: () => store.removeRecord(record.id),
+    );
   }
 
   Future<void> _removeRecord(BenefitRecord r) async {
     await store.removeRecord(r.id);
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(SnackBar(
-        duration: const Duration(seconds: 2),
-        content: Text('${r.name} 기록을 지웠어요'),
-      ));
+    showAppToast(context, '${r.name} 기록을 지웠어요');
+  }
+
+  void _edit(BenefitTemplate t) =>
+      showTemplateSheet(context, store, template: t);
+  void _add() => showTemplateSheet(context, store);
+
+  Future<void> _openFarmSheet() async {
+    final picked = await showModalBottomSheet<BenefitTemplate>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      sheetAnimationStyle: Motion.sheet,
+      builder: (_) => _FarmSheet(store: store, onAdd: _add, onEdit: _edit),
+    );
+    if (picked != null) await _credit(picked);
   }
 
   @override
   Widget build(BuildContext context) {
     final now = store.now();
     final settings = store.currentSettings!;
-    final salary = store.salaryOn(now, now).floor();
+    // 오늘 급여는 화면이 그려질 때마다 지금 시각으로 다시 계산해 끊김 없이 오르게 한다.
+    double salaryAt() {
+      final n = store.now();
+      return store.salaryOn(n, n);
+    }
+
+    final monthBefore = store.monthSalary(now) - store.salaryOn(now, now);
+    final monthExpected = SalaryCalculator.expectedInMonth(
+      settings,
+      now,
+    ).round();
     final todayRecords = store.recordsOn(now);
     final benefit = todayRecords.fold(0, (sum, r) => sum + r.amount);
-    final templates = store.templatesByFrequency
-        .where((t) => _filter == null || t.category == _filter)
-        .toList();
+    final phase = SalaryCalculator.phase(settings, now);
+    final tiles = store.templatesByFrequency.take(_homeTileCount).toList();
 
     return SafeArea(
       bottom: false,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(4, 4, 4, 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                const Text(
-                  '월급파밍',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
-                ),
-                const Spacer(),
-                Text(
-                  '${now.month}월 ${now.day}일 ${weekdayLabels[now.weekday - 1]}요일',
-                  style: const TextStyle(color: AppColors.inkSoft),
-                ),
-              ],
+          StaggerIn(
+            index: 0,
+            child: _Header(
+              now: now,
+              phase: phase,
+              onOpenSettings: widget.onOpenSettings,
             ),
           ),
-          _TodayCard(
-            settings: settings,
-            now: now,
-            salary: salary,
-            benefit: benefit,
-            justCredited: _justCredited,
-          ),
-          const SizedBox(height: 28),
-          const _SectionTitle('혜택 줍기', hint: '받자마자 한 번만 누르면 끝'),
-          const SizedBox(height: 10),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _FilterChip(
-                  label: '전체',
-                  selected: _filter == null,
-                  onTap: () => setState(() => _filter = null),
-                ),
-                for (final c in BenefitCategory.values)
-                  _FilterChip(
-                    label: c.label,
-                    selected: _filter == c,
-                    onTap: () => setState(() => _filter = c),
-                  ),
-              ],
+          const SizedBox(height: 16),
+          StaggerIn(
+            index: 1,
+            child: _HarvestCard(
+              settings: settings,
+              now: now,
+              phase: phase,
+              salaryAt: salaryAt,
+              benefit: benefit,
+              justCredited: _justCredited,
             ),
           ),
-          const SizedBox(height: 12),
-          GridView(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 130,
-              mainAxisExtent: 112,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-            ),
-            children: [
-              for (final t in templates)
-                _TemplateTile(
-                  template: t,
-                  onTap: () => _credit(t),
-                  onLongPress: () => showTemplateSheet(context, store, template: t),
-                ),
-              _AddTile(onTap: () => showTemplateSheet(context, store)),
-            ],
+          const SizedBox(height: 24),
+          StaggerIn(
+            index: 2,
+            child: _WorkProgress(settings: settings, now: now, phase: phase),
           ),
-          const SizedBox(height: 6),
-          const Text(
-            '길게 누르면 이름과 금액을 고칠 수 있어요.',
-            style: TextStyle(fontSize: 12, color: AppColors.inkSoft),
+          const SizedBox(height: 24),
+          StaggerIn(
+            index: 3,
+            child: _MonthCard(
+              now: now,
+              valueAt: () => monthBefore + salaryAt(),
+              expected: monthExpected,
+              growing: SalaryCalculator.isGrowing(settings, now),
+            ),
           ),
           const SizedBox(height: 28),
           _SectionTitle(
-            '오늘 주운 것',
-            hint: todayRecords.isEmpty ? null : '${todayRecords.length}건',
+            '무엇을 파밍했나요?',
+            trailing: TextButton(
+              onPressed: _openFarmSheet,
+              child: const Text('전체 보기'),
+            ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 4),
+          const Text(
+            '누르면 바로 적립돼요. 길게 누르면 고칠 수 있어요.',
+            style: TextStyle(fontSize: 13, color: AppColors.inkSoft),
+          ),
+          const SizedBox(height: 12),
+          _BenefitGrid(templates: tiles, onTap: _credit, onLongPress: _edit),
+          const SizedBox(height: 16),
+          _AddButton(onPressed: _add),
+          const SizedBox(height: 32),
+          _SectionTitle(
+            '오늘의 파밍 일지',
+            trailing: todayRecords.isEmpty
+                ? null
+                : Text(
+                    '${todayRecords.length}건',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppColors.inkSoft,
+                    ),
+                  ),
+          ),
+          const SizedBox(height: 12),
           if (todayRecords.isEmpty)
             const _EmptyRecords()
           else
@@ -195,7 +207,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               child: Column(
                 children: [
                   for (var i = 0; i < todayRecords.length; i++) ...[
-                    if (i > 0) const Divider(indent: 16, endIndent: 16),
+                    if (i > 0) const Divider(indent: 72, endIndent: 16),
                     _RecordRow(
                       record: todayRecords[i],
                       onDelete: () => _removeRecord(todayRecords[i]),
@@ -210,83 +222,133 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 }
 
-/// 오늘의 실제 급여 · 추가 혜택 · 총 가치.
-class _TodayCard extends StatelessWidget {
-  const _TodayCard({
+// ---------------------------------------------------------------------------
+// 상단
+
+class _Header extends StatelessWidget {
+  const _Header({required this.now, required this.phase, this.onOpenSettings});
+
+  final DateTime now;
+  final WorkPhase phase;
+  final VoidCallback? onOpenSettings;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 8),
+              const Row(
+                children: [
+                  Icon(Icons.eco, size: 24, color: AppColors.salary),
+                  SizedBox(width: 8),
+                  Text(
+                    '월급파밍',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${now.month}월 ${now.day}일 ${weekdayLabels[now.weekday - 1]}요일',
+                style: const TextStyle(fontSize: 14, color: AppColors.inkSoft),
+              ),
+            ],
+          ),
+        ),
+        if (onOpenSettings != null)
+          IconButton(
+            tooltip: '설정',
+            onPressed: onOpenSettings,
+            iconSize: 26,
+            icon: const Icon(Icons.settings_outlined, color: AppColors.ink),
+          ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 메인 카드: 오늘의 총 수확
+
+class _HarvestCard extends StatelessWidget {
+  const _HarvestCard({
     required this.settings,
     required this.now,
-    required this.salary,
+    required this.phase,
+    required this.salaryAt,
     required this.benefit,
     required this.justCredited,
   });
 
   final WorkSettings settings;
   final DateTime now;
-  final int salary;
+  final WorkPhase phase;
+  final double Function() salaryAt;
   final int benefit;
   final BenefitRecord? justCredited;
 
-  String _phaseHint(WorkPhase phase) {
+  String get _hint {
     switch (phase) {
-      case WorkPhase.dayOff:
-        return '오늘은 밭도 쉬어요';
-      case WorkPhase.beforeWork:
-        return '${clock(settings.startMinute)}부터 자라기 시작해요';
       case WorkPhase.working:
         final perSec = SalaryCalculator.perSecond(settings, now);
-        return '1초에 ${perSec.toStringAsFixed(1)}원씩 자라는 중';
+        return '매초 +${perSec.toStringAsFixed(2)}원씩 자라는 중';
+      case WorkPhase.beforeWork:
+        return '${clock(settings.startMinute)}부터 자라기 시작해요';
       case WorkPhase.onBreak:
+        if (settings.paidBreak) {
+          final perSec = SalaryCalculator.perSecond(settings, now);
+          return '휴게 중에도 매초 +${perSec.toStringAsFixed(2)}원씩 자라는 중';
+        }
         return '${clock(settings.breakEndMinute)}에 다시 자라요';
       case WorkPhase.afterWork:
-        return '오늘 수확 끝! 수고했어요';
+        return '오늘 수확을 모두 거뒀어요';
+      case WorkPhase.dayOff:
+        return '쉬는 날에도 파밍 수익은 쌓을 수 있어요';
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final phase = SalaryCalculator.phase(settings, now);
-    final progress = SalaryCalculator.progress(settings, now);
-    final growing = phase == WorkPhase.working;
-
+    final growing = SalaryCalculator.isGrowing(settings, now);
     return Container(
-      decoration: BoxDecoration(
-        color: AppColors.field,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+      decoration: surfaceBox(color: AppColors.field, radius: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               const Text(
-                '오늘 자란 월급',
+                '오늘의 총 수확',
                 style: TextStyle(
-                  color: Color(0xFFB9D4BD),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+                  color: AppColors.fieldMuted,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
+              const SizedBox(width: 8),
+              LiveDot(live: growing),
               const Spacer(),
-              _PhaseChip(phase: phase),
+              _CreditPop(record: justCredited),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
-            child: RollingAmount(
-              value: salary,
-              // 근무 중에는 다음 틱까지 쉬지 않고 굴러가게 1초 동안 고르게 올린다.
-              duration: growing
-                  ? const Duration(seconds: 1)
-                  : const Duration(milliseconds: 600),
-              curve: growing ? Curves.linear : Curves.easeOutCubic,
+            child: LiveAmount(
+              valueAt: () => salaryAt() + benefit,
+              running: growing,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 46,
+                fontSize: 40,
                 height: 1.15,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w600,
                 fontFeatures: tabular,
                 letterSpacing: -1,
               ),
@@ -294,116 +356,78 @@ class _TodayCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            _phaseHint(phase),
-            style: const TextStyle(color: Color(0xFFB9D4BD), fontSize: 13),
+            _hint,
+            style: const TextStyle(color: AppColors.fieldMuted, fontSize: 14),
           ),
+          const SizedBox(height: 20),
+          const Divider(color: AppColors.darkTrack),
           const SizedBox(height: 16),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 8,
-              backgroundColor: const Color(0xFF2F5E3B),
-              color: const Color(0xFF8FD19A),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              Text(
-                clock(settings.startMinute),
-                style: const TextStyle(color: Color(0xFF8FB096), fontSize: 12),
-              ),
-              const Spacer(),
-              Text(
-                '${(progress * 100).floor()}%',
-                style: const TextStyle(
-                  color: Color(0xFFB9D4BD),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  fontFeatures: tabular,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                clock(settings.endMinute),
-                style: const TextStyle(color: Color(0xFF8FB096), fontSize: 12),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF173A22),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            padding: const EdgeInsets.all(16),
-            child: Column(
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  children: [
-                    const _Dot(Color(0xFFF2C66B)),
-                    const SizedBox(width: 8),
-                    const Text(
-                      '주운 혜택',
-                      style: TextStyle(color: Color(0xFFD6E5D8), fontSize: 14),
-                    ),
-                    const Spacer(),
-                    _CreditPop(record: justCredited),
-                    RollingAmount(
-                      value: benefit,
-                      prefix: '+',
+                Expanded(
+                  child: _SplitValue(
+                    label: '기본 수익',
+                    child: LiveAmount(
+                      valueAt: salaryAt,
+                      running: growing,
                       style: const TextStyle(
-                        color: Color(0xFFF2C66B),
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
                         fontFeatures: tabular,
                       ),
                     ),
-                  ],
+                  ),
                 ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Divider(color: Color(0xFF2F5E3B)),
-                ),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const Text(
-                      '오늘의 총 가치',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _SplitValue(
+                    label: '파밍 수익',
+                    child: RollingAmount(
+                      value: benefit,
+                      prefix: benefit > 0 ? '+' : '',
+                      style: const TextStyle(
+                        color: AppColors.benefitOnDark,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        fontFeatures: tabular,
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerRight,
-                        child: RollingAmount(
-                          value: salary + benefit,
-                          duration: growing
-                              ? const Duration(seconds: 1)
-                              : const Duration(milliseconds: 600),
-                          curve: growing ? Curves.linear : Curves.easeOutCubic,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w900,
-                            fontFeatures: tabular,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SplitValue extends StatelessWidget {
+  const _SplitValue({required this.label, required this.child});
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(color: AppColors.fieldMuted, fontSize: 14),
+        ),
+        const SizedBox(height: 4),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: child,
+        ),
+      ],
     );
   }
 }
@@ -431,16 +455,13 @@ class _CreditPop extends StatelessWidget {
           opacity: opacity,
           child: Transform.translate(
             offset: Offset(0, -14 * t),
-            child: Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: ExcludeSemantics(
-                child: Text(
-                  '${r.icon} +${comma(r.amount)}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
+            child: ExcludeSemantics(
+              child: Text(
+                '+${won(r.amount)}',
+                style: const TextStyle(
+                  color: AppColors.benefitOnDark,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
@@ -451,16 +472,145 @@ class _CreditPop extends StatelessWidget {
   }
 }
 
-class _Dot extends StatelessWidget {
-  const _Dot(this.color);
-  final Color color;
+// ---------------------------------------------------------------------------
+// 오늘의 근무
+
+class _WorkProgress extends StatelessWidget {
+  const _WorkProgress({
+    required this.settings,
+    required this.now,
+    required this.phase,
+  });
+
+  final WorkSettings settings;
+  final DateTime now;
+  final WorkPhase phase;
+
+  String _left(int seconds) {
+    final m = (seconds / 60).ceil();
+    return duration(m < 1 ? 1 : m);
+  }
+
+  String get _status {
+    final sec = now.hour * 3600 + now.minute * 60 + now.second;
+    switch (phase) {
+      case WorkPhase.working:
+      case WorkPhase.onBreak:
+        return '퇴근까지 ${_left(settings.endMinute * 60 - sec)}';
+      case WorkPhase.beforeWork:
+        return '출근까지 ${_left(settings.startMinute * 60 - sec)}';
+      case WorkPhase.afterWork:
+        return '오늘 근무 끝, 수고했어요';
+      case WorkPhase.dayOff:
+        return '오늘은 근무가 없는 날이에요';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 8,
-      height: 8,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+    return _ProgressSection(
+      title: '오늘의 근무',
+      chip: _PhaseChip(phase: phase),
+      progress: SalaryCalculator.progress(settings, now),
+      primary: Text(
+        _status,
+        style: const TextStyle(fontSize: 14, color: AppColors.ink),
+      ),
+      secondary: phase == WorkPhase.dayOff
+          ? null
+          : '${clock(settings.startMinute)} – ${clock(settings.endMinute)}',
+    );
+  }
+}
+
+/// 제목·% 줄, 막대, 아래 한 줄로 된 진행 묶음. 오늘의 근무와 이번 달 누적 월급이
+/// 같은 틀을 써서 두 막대의 굵기·간격·글자가 늘 같다.
+class _ProgressSection extends StatelessWidget {
+  const _ProgressSection({
+    required this.title,
+    required this.progress,
+    required this.primary,
+    required this.secondary,
+    this.chip,
+  });
+
+  final String title;
+  final Widget? chip;
+  final double progress;
+
+  /// 아래 줄 왼쪽(진한 글자).
+  final Widget primary;
+
+  /// 아래 줄 오른쪽(흐린 글자). 없으면 비운다.
+  final String? secondary;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            // 좁은 화면·큰 글자에서는 상태 칩이 다음 줄로 내려간다.
+            Expanded(
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  ?chip,
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '${(progress * 100).floor()}%',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.field,
+                fontFeatures: tabular,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          // 1초마다 바뀌는 진행률 사이를 고르게 이어 막대도 멈칫하지 않게 한다.
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(end: progress),
+            duration: const Duration(seconds: 1),
+            builder: (context, v, _) => LinearProgressIndicator(
+              value: v,
+              minHeight: 10,
+              backgroundColor: AppColors.secondary,
+              color: AppColors.salary,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          spacing: 12,
+          runSpacing: 2,
+          children: [
+            primary,
+            if (secondary != null)
+              Text(
+                secondary!,
+                style: const TextStyle(fontSize: 13, color: AppColors.inkSoft),
+              ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -473,48 +623,382 @@ class _PhaseChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final active = phase == WorkPhase.working;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: active ? const Color(0xFF8FD19A) : const Color(0xFF2F5E3B),
+        color: active ? AppColors.secondary : AppColors.shade,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         phase.label,
         style: TextStyle(
-          color: active ? AppColors.field : const Color(0xFFD6E5D8),
           fontSize: 12,
-          fontWeight: FontWeight.w800,
+          fontWeight: FontWeight.w500,
+          color: active ? AppColors.field : AppColors.inkSoft,
         ),
       ),
     );
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.title, {this.hint});
-  final String title;
-  final String? hint;
+// ---------------------------------------------------------------------------
+// 이번 달
+
+/// 11/01 처럼 두 자리 월/일.
+String _mmdd(int month, int day) =>
+    '${month.toString().padLeft(2, '0')}/${day.toString().padLeft(2, '0')}';
+
+class _MonthCard extends StatelessWidget {
+  const _MonthCard({
+    required this.now,
+    required this.valueAt,
+    required this.expected,
+    required this.growing,
+  });
+
+  final DateTime now;
+  final double Function() valueAt;
+  final int expected;
+  final bool growing;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+    final ratio = expected <= 0 ? 0.0 : (valueAt() / expected).clamp(0.0, 1.0);
+    // 오늘의 근무와 같은 틀: 제목·% 줄, 같은 굵기의 막대, 아래 한 줄.
+    return _ProgressSection(
+      title: '${now.month}월 누적 월급',
+      // 제목 옆에 이번 달 전체 기간을 흐리게 붙인다. 예: (11/01~11/30)
+      chip: Text(
+        '(${_mmdd(now.month, 1)}~${_mmdd(now.month, DateTime(now.year, now.month + 1, 0).day)})',
+        style: const TextStyle(
+          fontSize: 13,
+          color: AppColors.inkSoft,
+          fontFeatures: tabular,
+        ),
+      ),
+      progress: ratio,
+      primary: LiveAmount(
+        valueAt: valueAt,
+        running: growing,
+        suffix: '원 쌓였어요',
+        style: const TextStyle(
+          fontSize: 14,
+          color: AppColors.ink,
+          fontFeatures: tabular,
+        ),
+      ),
+      secondary: '예상 실수령 ${won(expected)}',
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 혜택 그리드
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.text, {this.trailing});
+  final String text;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
           ),
-          const SizedBox(width: 8),
-          if (hint != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 2),
-              child: Text(
-                hint!,
-                style: const TextStyle(fontSize: 13, color: AppColors.inkSoft),
+        ),
+        ?trailing,
+      ],
+    );
+  }
+}
+
+/// 3열 혜택 그리드. 칸 높이는 글자 크기 설정에 맞춰 늘어난다.
+class _BenefitGrid extends StatelessWidget {
+  const _BenefitGrid({
+    required this.templates,
+    required this.onTap,
+    required this.onLongPress,
+  });
+
+  final List<BenefitTemplate> templates;
+  final ValueChanged<BenefitTemplate> onTap;
+  final ValueChanged<BenefitTemplate> onLongPress;
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: benefitGridDelegate(context),
+      children: [
+        for (final t in templates)
+          BenefitTile(
+            template: t,
+            onTap: () => onTap(t),
+            onLongPress: () => onLongPress(t),
+          ),
+      ],
+    );
+  }
+}
+
+/// 3열 혜택 그리드 배치. 칸 높이는 아이콘·여백(고정)과 글자 두 줄(글자 크기 설정에
+/// 따라 늘어남)을 더해 정하므로, 큰 글자에서도 칸 안이 넘치지 않는다.
+SliverGridDelegate benefitGridDelegate(BuildContext context) {
+  final scaler = MediaQuery.textScalerOf(context);
+  // 이름 14px·금액 13px 한 줄씩(글꼴마다 줄 높이가 달라 넉넉히 1.6배) + 아이콘 44
+  // + 여백 24 + 간격 10. 그래도 모자라면 칸 안 내용이 살짝 줄어든다(_TileBody).
+  final text = scaler.scale(14) * 1.6 + scaler.scale(13) * 1.6;
+  return SliverGridDelegateWithFixedCrossAxisCount(
+    crossAxisCount: 3,
+    mainAxisSpacing: 10,
+    crossAxisSpacing: 10,
+    mainAxisExtent: 44 + 24 + 10 + text + 8,
+  );
+}
+
+/// 혜택 칸 하나. 홈 그리드와 "파밍하기" 시트에서 같이 쓴다.
+class BenefitTile extends StatelessWidget {
+  const BenefitTile({
+    super.key,
+    required this.template,
+    required this.onTap,
+    this.onLongPress,
+  });
+
+  final BenefitTemplate template;
+  final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = template;
+    return SpringPress(
+      child: Semantics(
+        button: true,
+        label: '${t.name} ${won(t.amount)} 파밍하기',
+        child: Material(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(AppRadius.tile),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppRadius.tile),
+            splashColor: AppColors.benefitSoft,
+            highlightColor: AppColors.benefitSoft,
+            onTap: onTap,
+            onLongPress: onLongPress,
+            child: ExcludeSemantics(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 12,
+                ),
+                child: _TileBody(
+                  children: [
+                    BenefitGlyph(t.icon, size: 44, bare: true),
+                    const SizedBox(height: 8),
+                    Text(
+                      t.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '+${won(t.amount)}',
+                      maxLines: 1,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.benefitInk,
+                        fontFeatures: tabular,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 칸 내용. 아주 큰 글자 설정에서 칸보다 커지면 넘치지 않고 비율대로 줄어든다.
+class _TileBody extends StatelessWidget {
+  const _TileBody({required this.children});
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 120),
+          child: Column(mainAxisSize: MainAxisSize.min, children: children),
+        ),
+      ),
+    );
+  }
+}
+
+class AddBenefitTile extends StatelessWidget {
+  const AddBenefitTile({super.key, required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SpringPress(
+      child: Material(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(AppRadius.tile),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.tile),
+          onTap: onTap,
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+            child: _TileBody(
+              children: [
+                Icon(Icons.add_circle, size: 40, color: AppColors.salary),
+                SizedBox(height: 8),
+                Text(
+                  '직접 추가',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  '등록',
+                  style: TextStyle(fontSize: 13, color: AppColors.inkSoft),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 골드 "직접 추가" 버튼. 내 혜택을 만드는 시트를 바로 연다(전체 혜택은 '전체 보기').
+class _AddButton extends StatelessWidget {
+  const _AddButton({required this.onPressed});
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      onPressed: onPressed,
+      style: FilledButton.styleFrom(
+        backgroundColor: AppColors.coin,
+        foregroundColor: AppColors.ink,
+      ),
+      icon: const Icon(Icons.add_circle_outline),
+      label: const Text('직접 추가'),
+    );
+  }
+}
+
+/// 모든 혜택을 분류별로 보고 골라 적립하는 시트. 고른 혜택을 돌려준다.
+class _FarmSheet extends StatefulWidget {
+  const _FarmSheet({
+    required this.store,
+    required this.onAdd,
+    required this.onEdit,
+  });
+
+  final AppStore store;
+  final VoidCallback onAdd;
+  final ValueChanged<BenefitTemplate> onEdit;
+
+  @override
+  State<_FarmSheet> createState() => _FarmSheetState();
+}
+
+class _FarmSheetState extends State<_FarmSheet> {
+  BenefitCategory? _filter;
+
+  @override
+  Widget build(BuildContext context) {
+    final templates = widget.store.templatesByFrequency
+        .where((t) => _filter == null || t.category == _filter)
+        .toList();
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.75,
+      maxChildSize: 0.92,
+      builder: (context, scroll) => ListView(
+        controller: scroll,
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  '무엇을 파밍했나요?',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                ),
+              ),
+              IconButton(
+                tooltip: '닫기',
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close, color: AppColors.inkSoft),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            '하나를 고르면 바로 오늘 파밍 수익에 더해져요',
+            style: TextStyle(fontSize: 14, color: AppColors.inkSoft),
+          ),
+          const SizedBox(height: 16),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _FilterChip(
+                  label: '전체',
+                  selected: _filter == null,
+                  onTap: () => setState(() => _filter = null),
+                ),
+                for (final c in BenefitCategory.values)
+                  _FilterChip(
+                    label: c.label,
+                    selected: _filter == c,
+                    onTap: () => setState(() => _filter = c),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          GridView(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: benefitGridDelegate(context),
+            children: [
+              for (final t in templates)
+                BenefitTile(
+                  template: t,
+                  onTap: () => Navigator.pop(context, t),
+                  onLongPress: () {
+                    Navigator.pop(context);
+                    widget.onEdit(t);
+                  },
+                ),
+              AddBenefitTile(
+                onTap: () {
+                  Navigator.pop(context);
+                  widget.onAdd();
+                },
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -536,22 +1020,26 @@ class _FilterChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
-      child: Material(
-        color: selected ? AppColors.ink : AppColors.card,
-        shape: StadiumBorder(
-          side: BorderSide(color: selected ? AppColors.ink : AppColors.line),
-        ),
-        child: InkWell(
-          customBorder: const StadiumBorder(),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: selected ? Colors.white : AppColors.inkSoft,
+      child: Semantics(
+        button: true,
+        selected: selected,
+        child: Material(
+          color: selected ? AppColors.field : AppColors.card,
+          borderRadius: BorderRadius.circular(24),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(24),
+            onTap: onTap,
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 44),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              alignment: Alignment.center,
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: selected ? Colors.white : AppColors.inkSoft,
+                ),
               ),
             ),
           ),
@@ -561,99 +1049,8 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-class _TemplateTile extends StatelessWidget {
-  const _TemplateTile({
-    required this.template,
-    required this.onTap,
-    required this.onLongPress,
-  });
-
-  final BenefitTemplate template;
-  final VoidCallback onTap;
-  final VoidCallback onLongPress;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = template;
-    return Semantics(
-      button: true,
-      label: '${t.name} ${won(t.amount)} 적립',
-      child: Material(
-        color: AppColors.card,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: AppColors.line),
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          splashColor: AppColors.benefitSoft,
-          highlightColor: AppColors.benefitSoft,
-          onTap: onTap,
-          onLongPress: onLongPress,
-          child: ExcludeSemantics(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(t.icon, style: const TextStyle(fontSize: 28, height: 1.2)),
-                  const SizedBox(height: 6),
-                  Text(
-                    t.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '+${comma(t.amount)}',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.benefit,
-                      fontFeatures: tabular,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AddTile extends StatelessWidget {
-  const _AddTile({required this.onTap});
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.inkSoft, width: 1.2),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: const Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.add, size: 28, color: AppColors.ink),
-            SizedBox(height: 6),
-            Text(
-              '직접 만들기',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+// ---------------------------------------------------------------------------
+// 오늘의 파밍 일지
 
 class _RecordRow extends StatelessWidget {
   const _RecordRow({required this.record, required this.onDelete});
@@ -665,10 +1062,10 @@ class _RecordRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final r = record;
     return Padding(
-      padding: const EdgeInsets.only(left: 16, right: 4, top: 6, bottom: 6),
+      padding: const EdgeInsets.fromLTRB(16, 12, 4, 12),
       child: Row(
         children: [
-          Text(r.icon, style: const TextStyle(fontSize: 22)),
+          BenefitGlyph(r.icon, size: 40),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -676,11 +1073,19 @@ class _RecordRow extends StatelessWidget {
               children: [
                 Text(
                   r.name,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 Text(
                   clock(r.at.hour * 60 + r.at.minute),
-                  style: const TextStyle(fontSize: 12, color: AppColors.inkSoft),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.inkSoft,
+                  ),
                 ),
               ],
             ),
@@ -689,8 +1094,8 @@ class _RecordRow extends StatelessWidget {
             '+${won(r.amount)}',
             style: const TextStyle(
               fontSize: 15,
-              fontWeight: FontWeight.w800,
-              color: AppColors.benefit,
+              fontWeight: FontWeight.w500,
+              color: AppColors.benefitInk,
               fontFeatures: tabular,
             ),
           ),
@@ -712,22 +1117,18 @@ class _EmptyRecords extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.line),
-      ),
+      decoration: surfaceBox(color: AppColors.shade),
       child: const Column(
         children: [
-          Text('🧺', style: TextStyle(fontSize: 30)),
+          Icon(Icons.eco_outlined, size: 32, color: AppColors.salary),
           SizedBox(height: 8),
           Text(
-            '바구니가 아직 비어 있어요',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            '아직 파밍한 게 없어요',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
           ),
           SizedBox(height: 4),
           Text(
-            '탕비실 커피 한 잔부터 주워 볼까요?',
+            '탕비실 커피 한 잔부터 파밍해 볼까요?',
             style: TextStyle(fontSize: 13, color: AppColors.inkSoft),
           ),
         ],

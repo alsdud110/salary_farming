@@ -90,9 +90,11 @@ class Period {
       case PeriodKind.week:
       case PeriodKind.month:
         return [
-          for (var d = from;
-              !d.isAfter(to);
-              d = DateTime(d.year, d.month, d.day + 1))
+          for (
+            var d = from;
+            !d.isAfter(to);
+            d = DateTime(d.year, d.month, d.day + 1)
+          )
             Period.containing(PeriodKind.day, d),
         ];
       case PeriodKind.year:
@@ -128,32 +130,34 @@ List<String> buildInsights(
   final lines = <String>[];
 
   if (totals.benefit == 0) {
-    lines.add('월급만으로 묵묵히 ${won(totals.salary)}. 탕비실이 당신을 기다리고 있어요.');
+    lines.add('월급만으로 묵묵히 ${won(totals.salary)}. 탕비실이 당신을 기다리고 있어요');
     return lines;
   }
 
   final mostOften = [...summaries]..sort((a, b) => b.count.compareTo(a.count));
   final top = mostOften.first;
   if (top.count >= 2) {
-    lines.add('${top.icon} ${top.name}만 ${top.count}번. 이 정도면 단골이에요.');
+    lines.add('${top.name}만 ${top.count}번. 이 정도면 단골이에요');
   } else {
-    lines.add('${top.icon} ${top.name}, 놓치지 않고 챙겼어요.');
+    lines.add('${top.name}, 놓치지 않고 챙겼어요');
   }
 
   const chicken = 20000;
   const americano = 4500;
   if (totals.benefit >= chicken) {
-    lines.add('주운 혜택만 모아도 치킨 ${totals.benefit ~/ chicken}마리 값이에요.');
+    lines.add('파밍 수익만 모아도 치킨 ${totals.benefit ~/ chicken}마리 값이에요');
   } else if (totals.benefit >= americano) {
-    lines.add('주운 혜택으로 카페 아메리카노 ${totals.benefit ~/ americano}잔 값을 아꼈어요.');
+    lines.add('파밍 수익으로 카페 아메리카노 ${totals.benefit ~/ americano}잔 값을 아꼈어요');
   } else {
-    lines.add('티끌 ${won(totals.benefit)}. 태산은 원래 이렇게 시작해요.');
+    lines.add('티끌 ${won(totals.benefit)}. 태산은 원래 이렇게 시작해요');
   }
 
   if (totals.salary > 0) {
     final share = totals.benefit * 100 / totals.total;
-    final text = share < 1 ? share.toStringAsFixed(1) : share.round().toString();
-    lines.add('총 가치의 $text%는 월급 밖에서 나왔어요.');
+    final text = share < 1
+        ? share.toStringAsFixed(1)
+        : share.round().toString();
+    lines.add('총 가치의 $text%는 월급 밖에서 나왔어요');
   }
   return lines;
 }

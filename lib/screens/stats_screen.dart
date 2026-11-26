@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../app_store.dart';
 import '../format.dart';
 import '../period.dart';
+import '../motion.dart';
 import '../theme.dart';
+import '../widgets/benefit_glyph.dart';
 import 'share_screen.dart';
 
 class StatsScreen extends StatefulWidget {
@@ -16,8 +18,7 @@ class StatsScreen extends StatefulWidget {
 }
 
 class _StatsScreenState extends State<StatsScreen> {
-  late Period _period =
-      Period.containing(PeriodKind.day, widget.store.now());
+  late Period _period = Period.containing(PeriodKind.day, widget.store.now());
 
   AppStore get store => widget.store;
 
@@ -26,14 +27,13 @@ class _StatsScreenState extends State<StatsScreen> {
     setState(() => _period = Period.containing(kind, store.now()));
   }
 
-  void _openShare(PeriodTotals totals, List<BenefitSummary> summaries,
-      List<String> insights) {
+  void _openShare(
+    PeriodTotals totals,
+    List<BenefitSummary> summaries,
+    List<String> insights,
+  ) {
     if (totals.isEmpty) {
-      ScaffoldMessenger.of(context)
-        ..clearSnackBars()
-        ..showSnackBar(const SnackBar(
-          content: Text('이 기간에는 기록이 없어서 결산 이미지를 만들 수 없어요.'),
-        ));
+      showAppToast(context, '이 기간에는 기록이 없어서 결산 이미지를 만들 수 없어요');
       return;
     }
     Navigator.push(
@@ -69,8 +69,8 @@ class _StatsScreenState extends State<StatsScreen> {
               const Padding(
                 padding: EdgeInsets.fromLTRB(4, 4, 4, 12),
                 child: Text(
-                  '결산',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                  '수확 결산',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
                 ),
               ),
               SegmentedButton<PeriodKind>(
@@ -96,7 +96,7 @@ class _StatsScreenState extends State<StatsScreen> {
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                         fontFeatures: tabular,
                       ),
                     ),
@@ -134,11 +134,11 @@ class _StatsScreenState extends State<StatsScreen> {
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 4),
                   child: Text(
-                    '혜택별 기록',
-                    style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+                    '파밍한 혜택',
+                    style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 if (summaries.isEmpty)
                   const _NoBenefits()
                 else
@@ -172,10 +172,10 @@ class _TotalsCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              '총 경제적 가치',
+              '총 수확',
               style: TextStyle(
                 fontSize: 14,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
                 color: AppColors.inkSoft,
               ),
             ),
@@ -188,7 +188,7 @@ class _TotalsCard extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 38,
                   height: 1.2,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w600,
                   fontFeatures: tabular,
                   letterSpacing: -0.5,
                 ),
@@ -203,17 +203,25 @@ class _TotalsCard extends StatelessWidget {
                 child: total == 0
                     ? const ColoredBox(color: AppColors.line)
                     : Row(
+                        // 색 조각이 막대 높이를 꽉 채우게 한다(안 그러면 높이 0으로 안 보인다).
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          // 원 단위 금액을 그대로 비율로 쓰면 값이 너무 커서 막대가
+                          // 그려지지 않는다. 1000 분율로 줄여 쓴다.
                           if (totals.salary > 0)
                             Expanded(
-                              flex: totals.salary,
+                              flex: (totals.salary * 1000 / total)
+                                  .round()
+                                  .clamp(1, 1000),
                               child: const ColoredBox(color: AppColors.salary),
                             ),
                           if (totals.salary > 0 && totals.benefit > 0)
                             const SizedBox(width: 2),
                           if (totals.benefit > 0)
                             Expanded(
-                              flex: totals.benefit,
+                              flex: (totals.benefit * 1000 / total)
+                                  .round()
+                                  .clamp(1, 1000),
                               child: const ColoredBox(color: AppColors.benefit),
                             ),
                         ],
@@ -223,14 +231,14 @@ class _TotalsCard extends StatelessWidget {
             const SizedBox(height: 16),
             _LegendRow(
               color: AppColors.salary,
-              label: '실제 급여',
+              label: '기본 수익',
               value: won(totals.salary),
             ),
             const SizedBox(height: 8),
             _LegendRow(
               color: AppColors.benefit,
-              label: '추가 혜택',
-              value: '+${won(totals.benefit)}',
+              label: '파밍 수익',
+              value: '${totals.benefit > 0 ? '+' : ''}${won(totals.benefit)}',
             ),
           ],
         ),
@@ -269,7 +277,7 @@ class _LegendRow extends StatelessWidget {
           value,
           style: const TextStyle(
             fontSize: 16,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w600,
             fontFeatures: tabular,
           ),
         ),
@@ -302,7 +310,10 @@ class _ChartCard extends StatelessWidget {
               children: [
                 Text(
                   period.kind == PeriodKind.year ? '달마다' : '날마다',
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 const Spacer(),
                 Text(
@@ -337,7 +348,7 @@ class _ChartCard extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Row(
               children: [
                 for (var i = 0; i < buckets.length; i++) ...[
@@ -399,7 +410,8 @@ class _Bar extends StatelessWidget {
               height: benefitH < 2 ? 2 : benefitH,
               color: AppColors.benefit,
             ),
-          if (value.salary > 0) Container(height: salaryH, color: AppColors.salary),
+          if (value.salary > 0)
+            Container(height: salaryH, color: AppColors.salary),
         ],
       ),
     );
@@ -422,20 +434,17 @@ class _InsightCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            '농사 일지',
+            '파밍 일지',
             style: TextStyle(
               fontSize: 13,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF7A5210),
+              fontWeight: FontWeight.w500,
+              color: AppColors.benefitInk,
             ),
           ),
           const SizedBox(height: 8),
           for (var i = 0; i < lines.length; i++) ...[
-            if (i > 0) const SizedBox(height: 6),
-            Text(
-              lines[i],
-              style: const TextStyle(fontSize: 15, height: 1.45),
-            ),
+            if (i > 0) const SizedBox(height: 8),
+            Text(lines[i], style: const TextStyle(fontSize: 15, height: 1.45)),
           ],
         ],
       ),
@@ -453,18 +462,21 @@ class _SummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         child: Column(
           children: [
             for (var i = 0; i < summaries.length; i++) ...[
               if (i > 0) const Divider(indent: 16, endIndent: 16),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 child: Column(
                   children: [
                     Row(
                       children: [
-                        Text(summaries[i].icon, style: const TextStyle(fontSize: 22)),
+                        BenefitGlyph(summaries[i].icon, size: 40),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
@@ -473,7 +485,7 @@ class _SummaryCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               fontSize: 15,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
@@ -490,7 +502,7 @@ class _SummaryCard extends StatelessWidget {
                           won(summaries[i].amount),
                           style: const TextStyle(
                             fontSize: 15,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w500,
                             fontFeatures: tabular,
                           ),
                         ),
@@ -527,10 +539,9 @@ class _NoBenefits extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.line),
       ),
       child: const Text(
-        '이 기간에 주운 혜택이 없어요.',
+        '이 기간에 파밍한 혜택이 없어요',
         textAlign: TextAlign.center,
         style: TextStyle(color: AppColors.inkSoft),
       ),
@@ -548,7 +559,6 @@ class _EmptyPeriod extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.line),
       ),
       child: const Column(
         children: [
@@ -556,11 +566,11 @@ class _EmptyPeriod extends StatelessWidget {
           SizedBox(height: 8),
           Text(
             '이 기간에는 기록이 없어요',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
           ),
           SizedBox(height: 4),
           Text(
-            '급여도 혜택도 쌓이지 않은 기간이에요.',
+            '급여도 혜택도 쌓이지 않은 기간이에요',
             style: TextStyle(fontSize: 13, color: AppColors.inkSoft),
           ),
         ],

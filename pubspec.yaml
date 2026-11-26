@@ -51,6 +51,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  image: 4.12.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -62,6 +63,25 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # 혜택 아이콘 PNG(256×256, 투명 배경). tool/make_icons.dart 가 시트에서 잘라 만든다.
+  # 파일이 없는 아이콘은 화면에서 선 아이콘으로 대신 그린다(lib/widgets/benefit_glyph.dart).
+  assets:
+    - assets/icons/
+
+  # Pretendard (SIL OFL 1.1, assets/fonts/LICENSE-Pretendard.txt).
+  # 실행 중 내려받지 않고 앱에 넣는다(입력 정보가 기기 밖으로 나가지 않는다는 약속과 맞춘다).
+  fonts:
+    - family: Pretendard
+      fonts:
+        - asset: assets/fonts/Pretendard-Regular.otf
+          weight: 400
+        - asset: assets/fonts/Pretendard-SemiBold.otf
+          weight: 600
+        - asset: assets/fonts/Pretendard-Bold.otf
+          weight: 700
+        - asset: assets/fonts/Pretendard-ExtraBold.otf
+          weight: 800
 
   # To add assets to your application, add an assets section, like this:
   # assets:
