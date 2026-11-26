@@ -27,11 +27,7 @@ class _StatsScreenState extends State<StatsScreen> {
     setState(() => _period = Period.containing(kind, store.now()));
   }
 
-  void _openShare(
-    PeriodTotals totals,
-    List<BenefitSummary> summaries,
-    List<String> insights,
-  ) {
+  void _openShare(PeriodTotals totals, List<BenefitSummary> summaries) {
     if (totals.isEmpty) {
       showAppToast(context, '이 기간에는 기록이 없어서 결산 이미지를 만들 수 없어요');
       return;
@@ -39,12 +35,8 @@ class _StatsScreenState extends State<StatsScreen> {
     Navigator.push(
       context,
       MaterialPageRoute<void>(
-        builder: (_) => ShareScreen(
-          period: _period,
-          totals: totals,
-          summaries: summaries,
-          insight: insights.isEmpty ? null : insights.first,
-        ),
+        builder: (_) =>
+            ShareScreen(period: _period, totals: totals, summaries: summaries),
       ),
     );
   }
@@ -146,7 +138,7 @@ class _StatsScreenState extends State<StatsScreen> {
               ],
               const SizedBox(height: 24),
               OutlinedButton.icon(
-                onPressed: () => _openShare(totals, summaries, insights),
+                onPressed: () => _openShare(totals, summaries),
                 icon: const Icon(Icons.image_outlined),
                 label: const Text('결산 이미지 만들기'),
               ),

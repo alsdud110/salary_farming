@@ -13,6 +13,18 @@ import '../motion.dart';
 import '../theme.dart';
 import '../widgets/benefit_glyph.dart';
 
+/// 결산 이미지에 무엇까지 보여줄지.
+enum ShareScope {
+  /// 급여를 짐작할 수 있는 정보는 빼고 파밍 수익만. 기본값.
+  benefitOnly('파밍 수익만'),
+
+  /// 기본 수익·파밍 수익·총 수확을 모두.
+  all('전체 수익');
+
+  const ShareScope(this.label);
+  final String label;
+}
+
 /// 결산 이미지 미리보기. 여기서 기기에 저장하거나 다른 앱으로 공유한다.
 class ShareScreen extends StatefulWidget {
   const ShareScreen({
@@ -20,13 +32,11 @@ class ShareScreen extends StatefulWidget {
     required this.period,
     required this.totals,
     required this.summaries,
-    required this.insight,
   });
 
   final Period period;
   final PeriodTotals totals;
   final List<BenefitSummary> summaries;
-  final String? insight;
 
   @override
   State<ShareScreen> createState() => _ShareScreenState();
@@ -35,6 +45,7 @@ class ShareScreen extends StatefulWidget {
 class _ShareScreenState extends State<ShareScreen> {
   final _cardKey = GlobalKey();
   bool _busy = false;
+  ShareScope _scope = ShareScope.benefitOnly;
 
   String get _fileName {
     final p = widget.period;
@@ -115,19 +126,37 @@ class _ShareScreenState extends State<ShareScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 380),
+                child: SegmentedButton<ShareScope>(
+                  showSelectedIcon: false,
+                  segments: [
+                    for (final s in ShareScope.values)
+                      ButtonSegment(value: s, label: Text(s.label)),
+                  ],
+                  selected: {_scope},
+                  onSelectionChanged: _busy
+                      ? null
+                      : (v) => setState(() => _scope = v.first),
+                ),
+              ),
+            ),
             Expanded(
               child: Center(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(20),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 380),
+                    // 저장·공유는 이 경계를 그대로 찍으므로 미리보기와 같은 이미지가 나간다.
                     child: RepaintBoundary(
                       key: _cardKey,
                       child: SettlementCard(
                         period: widget.period,
                         totals: widget.totals,
                         summaries: widget.summaries,
-                        insight: widget.insight,
+                        scope: _scope,
                       ),
                     ),
                   ),
@@ -169,24 +198,36 @@ class _ShareScreenState extends State<ShareScreen> {
 /// 이미지로 내보내는 결산 카드.
 ///
 /// 홈 화면과 같은 구성으로, 연한 바탕 위에 둥근 카드들을 얹는다. 바탕까지 함께 저장되므로
-/// 공유한 이미지에서도 모서리가 둥글게 보인다. 기본 수익과 파밍 수익은 끝까지 따로 적는다.
+/// 공유한 이미지에서도 모서리가 둥글게 보인다.
+///
+/// [ShareScope.all]은 기본 수익과 파밍 수익을 끝까지 따로 적는다.
+/// [ShareScope.benefitOnly]는 기본 수익·총 수확·급여 비중 문구를 그리지 않고
+/// 파밍 수익을 가장 크게 보여준다.
 class SettlementCard extends StatelessWidget {
   const SettlementCard({
     super.key,
     required this.period,
     required this.totals,
     required this.summaries,
-    required this.insight,
+    this.scope = ShareScope.benefitOnly,
   });
 
   final Period period;
   final PeriodTotals totals;
   final List<BenefitSummary> summaries;
-  final String? insight;
+  final ShareScope scope;
 
   @override
   Widget build(BuildContext context) {
     final top = summaries.take(3).toList();
+    final benefitOnly = scope == ShareScope.benefitOnly;
+    final insights = buildInsights(
+      totals,
+      summaries,
+      includeSalary: !benefitOnly,
+    );
+    // 전체 수익은 예전처럼 한 줄, 파밍 수익만은 급여와 무관한 줄을 두 줄까지.
+    final lines = insights.take(benefitOnly ? 2 : 1).toList();
 
     return Container(
       color: AppColors.paper,
@@ -231,64 +272,67 @@ class SettlementCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // 총 수확 카드(홈의 메인 카드와 같은 모양)
-          Container(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-            decoration: surfaceBox(color: AppColors.field, radius: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${period.label} 총 수확',
-                  style: const TextStyle(
-                    color: AppColors.fieldMuted,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    fontFeatures: tabular,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    won(totals.total),
+          if (benefitOnly)
+            _BenefitHero(period: period, totals: totals, summaries: summaries)
+          else
+            // 총 수확 카드(홈의 메인 카드와 같은 모양)
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+              decoration: surfaceBox(color: AppColors.field, radius: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${period.label} 총 수확',
                     style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 38,
-                      height: 1.15,
-                      fontWeight: FontWeight.w600,
+                      color: AppColors.fieldMuted,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                       fontFeatures: tabular,
-                      letterSpacing: -1,
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                const Divider(height: 1, color: AppColors.darkTrack),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _Split(
-                        label: '기본 수익',
-                        value: won(totals.salary),
+                  const SizedBox(height: 8),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      won(totals.total),
+                      style: const TextStyle(
                         color: Colors.white,
+                        fontSize: 38,
+                        height: 1.15,
+                        fontWeight: FontWeight.w600,
+                        fontFeatures: tabular,
+                        letterSpacing: -1,
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _Split(
-                        label: '파밍 수익',
-                        value:
-                            '${totals.benefit > 0 ? '+' : ''}${won(totals.benefit)}',
-                        color: AppColors.benefitOnDark,
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(height: 1, color: AppColors.darkTrack),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _Split(
+                          label: '기본 수익',
+                          value: won(totals.salary),
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _Split(
+                          label: '파밍 수익',
+                          value:
+                              '${totals.benefit > 0 ? '+' : ''}${won(totals.benefit)}',
+                          color: AppColors.benefitOnDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
 
           // 많이 파밍한 혜택: 홈의 혜택 칸과 같은 3칸 타일
           if (top.isNotEmpty) ...[
@@ -318,7 +362,7 @@ class SettlementCard extends StatelessWidget {
           ],
 
           // 파밍 일지 한마디: 말풍선
-          if (insight != null) ...[
+          if (lines.isNotEmpty) ...[
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
@@ -352,16 +396,18 @@ class SettlementCard extends StatelessWidget {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          insight!,
-                          style: const TextStyle(
-                            color: AppColors.ink,
-                            fontSize: 15,
-                            height: 1.45,
-                            fontWeight: FontWeight.w500,
+                        for (final line in lines) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            line,
+                            style: const TextStyle(
+                              color: AppColors.ink,
+                              fontSize: 15,
+                              height: 1.45,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
@@ -486,6 +532,81 @@ class _TopBenefit extends StatelessWidget {
                 fontFeatures: tabular,
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 파밍 수익만 공유할 때의 메인 카드. 급여·총 수확 대신 파밍 수익을 가장 크게,
+/// 그 아래에 파밍 횟수와 챙긴 혜택 가짓수를 둔다.
+class _BenefitHero extends StatelessWidget {
+  const _BenefitHero({
+    required this.period,
+    required this.totals,
+    required this.summaries,
+  });
+
+  final Period period;
+  final PeriodTotals totals;
+  final List<BenefitSummary> summaries;
+
+  @override
+  Widget build(BuildContext context) {
+    final count = summaries.fold<int>(0, (sum, s) => sum + s.count);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+      decoration: surfaceBox(color: AppColors.field, radius: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${period.label} 파밍 수익',
+            style: const TextStyle(
+              color: AppColors.fieldMuted,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              fontFeatures: tabular,
+            ),
+          ),
+          const SizedBox(height: 8),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '${totals.benefit > 0 ? '+' : ''}${won(totals.benefit)}',
+              style: const TextStyle(
+                color: AppColors.benefitOnDark,
+                fontSize: 46,
+                height: 1.15,
+                fontWeight: FontWeight.w600,
+                fontFeatures: tabular,
+                letterSpacing: -1,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1, color: AppColors.darkTrack),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _Split(
+                  label: '파밍 횟수',
+                  value: '$count번',
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _Split(
+                  label: '챙긴 혜택',
+                  value: '${summaries.length}가지',
+                  color: Colors.white,
+                ),
+              ),
+            ],
           ),
         ],
       ),

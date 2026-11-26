@@ -122,14 +122,19 @@ class Period {
 }
 
 /// 결산에 곁들이는 한마디들.
+///
+/// [includeSalary]가 false면 급여 금액이나 급여 대비 비중을 짐작할 수 있는 줄은 뺀다
+/// (파밍 수익만 공유하는 이미지용).
 List<String> buildInsights(
   PeriodTotals totals,
-  List<BenefitSummary> summaries,
-) {
+  List<BenefitSummary> summaries, {
+  bool includeSalary = true,
+}) {
   if (totals.isEmpty) return const [];
   final lines = <String>[];
 
   if (totals.benefit == 0) {
+    if (!includeSalary) return const [];
     lines.add('월급만으로 묵묵히 ${won(totals.salary)}. 탕비실이 당신을 기다리고 있어요');
     return lines;
   }
@@ -152,7 +157,7 @@ List<String> buildInsights(
     lines.add('티끌 ${won(totals.benefit)}. 태산은 원래 이렇게 시작해요');
   }
 
-  if (totals.salary > 0) {
+  if (includeSalary && totals.salary > 0) {
     final share = totals.benefit * 100 / totals.total;
     final text = share < 1
         ? share.toStringAsFixed(1)
