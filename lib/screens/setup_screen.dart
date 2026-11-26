@@ -9,6 +9,7 @@ import '../motion.dart';
 import '../salary_calculator.dart';
 import '../theme.dart';
 import '../widgets/benefit_glyph.dart';
+import '../widgets/brand_symbol.dart';
 import '../widgets/work_settings_form.dart';
 import 'intro_view.dart';
 
@@ -547,6 +548,14 @@ class _ReadyView extends StatelessWidget {
           Expanded(
             child: ListView(
               children: [
+                const StaggerIn(
+                  index: 0,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: BrandSymbol(size: 80),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 const StaggerIn(
                   index: 0,
                   child: Text(

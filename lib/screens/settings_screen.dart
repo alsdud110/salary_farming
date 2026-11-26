@@ -6,6 +6,7 @@ import '../models.dart';
 import '../motion.dart';
 import '../theme.dart';
 import '../widgets/benefit_glyph.dart';
+import '../widgets/brand_symbol.dart';
 import '../widgets/template_sheet.dart';
 import '../widgets/work_settings_form.dart';
 
@@ -149,11 +150,21 @@ class SettingsScreen extends StatelessWidget {
                 child: const Text('모든 데이터 지우기'),
               ),
               const SizedBox(height: 24),
-              const Center(
-                child: Text(
-                  '월급파밍 · Salary Farming 1.0.0',
-                  style: TextStyle(fontSize: 12, color: AppColors.inkSoft),
-                ),
+              // 앱 정보
+              const Column(
+                children: [
+                  BrandSymbol(size: 48),
+                  SizedBox(height: 8),
+                  Text(
+                    '월급파밍',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'Salary Farming 1.0.0',
+                    style: TextStyle(fontSize: 12, color: AppColors.inkSoft),
+                  ),
+                ],
               ),
             ],
           ),

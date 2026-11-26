@@ -10,6 +10,7 @@ import '../motion.dart';
 import '../salary_calculator.dart';
 import '../theme.dart';
 import '../widgets/benefit_glyph.dart';
+import '../widgets/brand_symbol.dart';
 import '../widgets/farm_burst.dart';
 import '../widgets/live_amount.dart';
 import '../widgets/template_sheet.dart';
@@ -264,7 +265,7 @@ class _Header extends StatelessWidget {
               const SizedBox(height: 8),
               const Row(
                 children: [
-                  Icon(Icons.eco, size: 24, color: AppColors.salary),
+                  BrandSymbol(size: 30),
                   SizedBox(width: 8),
                   Text(
                     '월급파밍',

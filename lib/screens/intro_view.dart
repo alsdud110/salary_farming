@@ -5,6 +5,7 @@ import '../format.dart';
 import '../motion.dart';
 import '../widgets/benefit_glyph.dart';
 import '../theme.dart';
+import '../widgets/brand_symbol.dart';
 
 /// 첫 실행 소개 3장. 마지막 장의 "내 정보 입력하기" 로 설정을 시작한다.
 /// 각 장의 데모 애니메이션은 그 장이 화면에 들어올 때마다 처음부터 재생된다.
@@ -75,6 +76,8 @@ class _IntroViewState extends State<IntroView> {
             onPageChanged: (i) => setState(() => _page = i),
             children: [
               _IntroPage(
+                // 첫 장은 브랜드 심볼로 시작한다.
+                leading: const BrandSymbol(size: 88),
                 title: '일하는 동안\n월급이 자라는 걸 지켜보세요',
                 body: '출근해서 퇴근할 때까지 월급이 쌓여요.\n점심시간에도 쉬지 않고요.',
                 demo: _GrowingDemo(active: _page == 0),
@@ -129,11 +132,14 @@ class _IntroViewState extends State<IntroView> {
 
 class _IntroPage extends StatelessWidget {
   const _IntroPage({
+    this.leading,
     required this.title,
     required this.body,
     required this.demo,
   });
 
+  /// 제목 위에 놓는 그림(첫 장의 브랜드 심볼).
+  final Widget? leading;
   final String title;
   final String body;
   final Widget demo;
@@ -143,6 +149,13 @@ class _IntroPage extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
       children: [
+        if (leading != null) ...[
+          StaggerIn(
+            index: 0,
+            child: Align(alignment: Alignment.centerLeft, child: leading),
+          ),
+          const SizedBox(height: 20),
+        ],
         // 제목 줄 → 설명 줄 → 데모 순서로 한 줄씩 나온다. 읽어 주기는 한 덩어리로.
         Semantics(
           header: true,

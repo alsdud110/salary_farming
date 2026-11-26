@@ -12,6 +12,7 @@ import '../period.dart';
 import '../motion.dart';
 import '../theme.dart';
 import '../widgets/benefit_glyph.dart';
+import '../widgets/brand_symbol.dart';
 
 /// 결산 이미지에 무엇까지 보여줄지.
 enum ShareScope {
@@ -236,20 +237,9 @@ class SettlementCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 브랜드 · 기간
+          // 기간. 브랜드는 맨 아래에 한 번만 둔다.
           Row(
             children: [
-              const Icon(Icons.eco, size: 22, color: AppColors.salary),
-              const SizedBox(width: 8),
-              const Text(
-                '월급파밍',
-                style: TextStyle(
-                  color: AppColors.ink,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
@@ -416,10 +406,32 @@ class SettlementCard extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 16),
-          const Text(
-            '월급파밍으로 기록했어요',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.inkSoft, fontSize: 12),
+          // 브랜드: 심볼 + 월급파밍
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              BrandSymbol(size: 26),
+              SizedBox(width: 6),
+              Text.rich(
+                TextSpan(
+                  text: '월급파밍',
+                  style: TextStyle(
+                    color: AppColors.ink,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  children: [
+                    TextSpan(
+                      text: '으로 기록했어요',
+                      style: TextStyle(
+                        color: AppColors.inkSoft,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                style: TextStyle(fontSize: 13),
+              ),
+            ],
           ),
         ],
       ),

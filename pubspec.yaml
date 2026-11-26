@@ -68,6 +68,8 @@ flutter:
   # 파일이 없는 아이콘은 화면에서 선 아이콘으로 대신 그린다(lib/widgets/benefit_glyph.dart).
   assets:
     - assets/icons/
+    # 브랜드 심볼(동전 + 새싹, 투명 배경). 혜택 아이콘과 따로 둔다. lib/widgets/brand_symbol.dart
+    - assets/images/brand/
 
   # Pretendard (SIL OFL 1.1, assets/fonts/LICENSE-Pretendard.txt).
   # 실행 중 내려받지 않고 앱에 넣는다(입력 정보가 기기 밖으로 나가지 않는다는 약속과 맞춘다).

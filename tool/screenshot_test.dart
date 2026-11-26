@@ -1,6 +1,6 @@
 // 화면을 PNG로 뽑아 눈으로 확인하는 용도. 일반 테스트에는 포함되지 않는다.
 //   flutter test tool/screenshot_test.dart --update-goldens
-// 결과는 tool/shots/ 에 생긴다. Windows 글꼴을 쓰므로 Windows에서만 돈다.
+// 결과는 tool/shots/ 에 생긴다. Windows는 맑은 고딕, 그 밖(macOS 등)은 Pretendard로 기본 글꼴을 채운다.
 // test/ 밖에 있어서 분석기가 테스트 전용 API 사용을 경고하므로 끈다.
 // ignore_for_file: invalid_use_of_visible_for_testing_member
 import 'dart:io';
@@ -11,6 +11,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salary_farming/app_store.dart';
 import 'package:salary_farming/main.dart';
 import 'package:salary_farming/models.dart';
+import 'package:salary_farming/screens/splash_screen.dart';
+import 'package:salary_farming/widgets/brand_symbol.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> loadFont(String family, List<String> paths) async {
@@ -24,18 +26,21 @@ Future<void> loadFont(String family, List<String> paths) async {
 
 void main() {
   setUpAll(() async {
-    const malgun = ['C:/Windows/Fonts/malgun.ttf', 'C:/Windows/Fonts/malgunbd.ttf'];
-    // 기본 글꼴 이름(플랫폼별)에 한글 글꼴을 물려 실제 글자가 보이게 한다.
-    for (final family in ['Roboto', 'FlutterTest', 'Segoe UI', '.SF UI Text', '.SF UI Display']) {
-      await loadFont(family, malgun);
-    }
-    // 앱 글꼴. 테스트에서는 pubspec 의 글꼴이 자동으로 실리지 않아 직접 싣는다.
-    await loadFont('Pretendard', [
+    final pretendard = [
       for (final w in ['Regular', 'SemiBold', 'Bold', 'ExtraBold'])
         'assets/fonts/Pretendard-$w.otf',
-    ]);
+    ];
+    const malgun = ['C:/Windows/Fonts/malgun.ttf', 'C:/Windows/Fonts/malgunbd.ttf'];
+    final fallback = File(malgun.first).existsSync() ? malgun : pretendard;
+    // 기본 글꼴 이름(플랫폼별)에 한글 글꼴을 물려 실제 글자가 보이게 한다.
+    for (final family in ['Roboto', 'FlutterTest', 'Segoe UI', '.SF UI Text', '.SF UI Display']) {
+      await loadFont(family, fallback);
+    }
+    // 앱 글꼴. 테스트에서는 pubspec 의 글꼴이 자동으로 실리지 않아 직접 싣는다.
+    await loadFont('Pretendard', pretendard);
+    final flutterRoot = Platform.environment['FLUTTER_ROOT'] ?? 'C:/flutter';
     await loadFont('MaterialIcons', [
-      'C:/flutter/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
+      '$flutterRoot/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
     ]);
   });
 
@@ -45,6 +50,27 @@ void main() {
       matchesGoldenFile('shots/$name.png'),
     );
   }
+
+  testWidgets('00_splash', (tester) async {
+    tester.view.physicalSize = const Size(824, 1830);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    SharedPreferences.setMockInitialValues({});
+    final store = AppStore(clock: () => DateTime(2026, 11, 26, 9, 0));
+    await store.load();
+    await tester.pumpWidget(SalaryFarmingApp(store: store, splash: true));
+    await tester.runAsync(
+      () => precacheImage(
+        const AssetImage(BrandSymbol.asset),
+        tester.element(find.byType(BrandSymbol)),
+      ),
+    );
+    await tester.pump(SplashScreen.fadeIn);
+    await tester.pump();
+    await shot(tester, '00_splash');
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 
   testWidgets('screens', (tester) async {
     tester.view.physicalSize = const Size(824, 1830);
