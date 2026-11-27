@@ -5,7 +5,9 @@
 // 입력: tool/appstore/marketing/src/sf_{iphone,ipad,android}_{1..6}.png, sf_android_feature.png
 // 출력: tool/appstore/marketing/{iphone,ipad,android}/{1..6}.png, android/feature.png
 //
-// 아이폰 원본(약 749×2098)은 규격(1320×2868)보다 길쭉해서, 높이에 맞춰 키운 뒤
+// 아이폰은 App Store Connect 'Dynamic Island 지원 iPhone(중형 디스플레이)' 칸 규격
+// 1206×2622 로 만든다(1320×2868 은 이 칸에서 "파일 크기가 유효하지 않습니다"로 거부됨).
+// 원본(약 749×2098)은 규격보다 길쭉해서, 높이에 맞춰 키운 뒤
 // 남는 양옆은 각 줄의 맨 끝 색을 이어 칠한다(배경·아래 언덕이 끊기지 않게).
 // 아이패드 원본(1086×1448)은 규격(2064×2752)과 비율이 같아 크기만 바꾼다.
 // 안드로이드(Google Play)는 9:16 1080×1920, 피처 그래픽은 1024×500(위아래를 조금 잘라 맞춤).
@@ -14,7 +16,7 @@ import 'dart:io';
 import 'package:image/image.dart' as img;
 
 const dir = 'tool/appstore/marketing';
-const sizes = {'iphone': (1320, 2868), 'ipad': (2064, 2752), 'android': (1080, 1920)};
+const sizes = {'iphone': (1206, 2622), 'ipad': (2064, 2752), 'android': (1080, 1920)};
 
 img.Image fit(img.Image src, int w, int h) {
   final scaled = img.copyResize(
