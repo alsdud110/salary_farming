@@ -1,4 +1,4 @@
-package com.salaryfarming.salary_farming
+package com.salaryfarming.app
 
 import io.flutter.embedding.android.FlutterActivity
 
