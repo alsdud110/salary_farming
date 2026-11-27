@@ -2,18 +2,19 @@
 //
 //   dart run tool/fit_marketing.dart
 //
-// 입력: tool/appstore/marketing/src/sf_{iphone,ipad}_{1..6}.png
-// 출력: tool/appstore/marketing/{iphone,ipad}/{1..6}.png
+// 입력: tool/appstore/marketing/src/sf_{iphone,ipad,android}_{1..6}.png, sf_android_feature.png
+// 출력: tool/appstore/marketing/{iphone,ipad,android}/{1..6}.png, android/feature.png
 //
 // 아이폰 원본(약 749×2098)은 규격(1320×2868)보다 길쭉해서, 높이에 맞춰 키운 뒤
 // 남는 양옆은 각 줄의 맨 끝 색을 이어 칠한다(배경·아래 언덕이 끊기지 않게).
 // 아이패드 원본(1086×1448)은 규격(2064×2752)과 비율이 같아 크기만 바꾼다.
+// 안드로이드(Google Play)는 9:16 1080×1920, 피처 그래픽은 1024×500(위아래를 조금 잘라 맞춤).
 import 'dart:io';
 
 import 'package:image/image.dart' as img;
 
 const dir = 'tool/appstore/marketing';
-const sizes = {'iphone': (1320, 2868), 'ipad': (2064, 2752)};
+const sizes = {'iphone': (1320, 2868), 'ipad': (2064, 2752), 'android': (1080, 1920)};
 
 img.Image fit(img.Image src, int w, int h) {
   final scaled = img.copyResize(
@@ -44,4 +45,11 @@ void main() {
       stdout.writeln('$device/$n.png ${out.width}×${out.height}');
     }
   }
+
+  final banner = img.decodePng(File('$dir/src/sf_android_feature.png').readAsBytesSync())!;
+  final wide = img.copyResize(banner, width: 1024, interpolation: img.Interpolation.cubic);
+  final feature = img.copyCrop(wide, x: 0, y: (wide.height - 500) ~/ 2, width: 1024, height: 500);
+  assert(feature.width == 1024 && feature.height == 500);
+  File('$dir/android/feature.png').writeAsBytesSync(img.encodePng(feature));
+  stdout.writeln('android/feature.png ${feature.width}×${feature.height}');
 }
