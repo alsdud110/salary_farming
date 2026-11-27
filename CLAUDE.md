@@ -160,6 +160,8 @@ art/source/                 app_icon.png, icons/(food_sheet.png, office_sheet.pn
 
 - 앱 이름(홈 화면 표시): **월급파밍** (iOS `CFBundleDisplayName`, Android `android:label`)
 - 스토어 표시 이름: **월급파밍 - 자는 동안에도 자라는 월급** (App Store Connect·Google Play 에 직접 입력, 30자 이내)
+- App Store 부제: **실시간 월급 계산기 · 홈 화면 위젯**. SKU `salaryfarming`, Apple ID 6839693654, 기본 언어 한국어.
+- 카테고리: 주 **금융**(세금·실수령 계산이 핵심, "월급 계산기" 검색 기대와 맞음). 보조는 생산성으로 입력돼 있으나 라이프스타일을 추천해 둠(탕비실 혜택·공유 같은 재미 쪽). Google Play 는 금융 하나.
 - 번들 ID: iOS `com.salaryfarming.app`(위젯 `com.salaryfarming.app.SalaryWidget`), Android `com.salaryfarming.app`(둘 다 같음). iOS 서명 팀 지정 완료.
 - Info.plist: `ITSAppUsesNonExemptEncryption = NO`.
 - 개인정보 처리방침: `docs/privacy/index.html`(GitHub Pages). 서버 없음, 수집 없음, 사진 저장 권한만 사용.
@@ -179,7 +181,8 @@ art/source/                 app_icon.png, icons/(food_sheet.png, office_sheet.pn
 ## 현재 상태 (2026-11-27 기준)
 
 - 최근 커밋: 다크 테마, 결산 개편, 적립 효과, 브랜드 심볼·앱 아이콘, 월 누적 24시간, iOS 위젯, 번들 ID, 개인정보 페이지, 스토어 캡처·홍보 이미지, iOS 서명 팀.
-- 커밋 안 된 변경: Android ID를 `com.salaryfarming.app`으로 변경(디버그 빌드 확인), 이 문서 갱신.
+- 모든 변경 커밋됨(마지막: `dc9d6b1 CLAUDE.md 수정`, 그 전 `7c60d05 안드로이드 ID 변경`).
+- App Store Connect 앱 정보 입력 완료(1.0 제출 준비 중).
 - `flutter analyze` 경고 0, 테스트 97개 통과.
 
 ## 남은 일 / 아이디어 (요청 시에만)
