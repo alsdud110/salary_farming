@@ -168,7 +168,8 @@ art/source/                 app_icon.png, icons/(food_sheet.png, office_sheet.pn
 - 홍보 이미지(`tool/appstore/marketing/`): src 원본(ChatGPT 생성) → `fit_marketing.dart`.
   - iPhone **1206×2622**: App Store Connect 'Dynamic Island 지원 iPhone(중형 디스플레이)' 칸은 1206×2622·1179×2556만 받는다. 1320×2868 은 "파일 크기가 유효하지 않습니다"로 거부됨.
   - iPad 13" 2064×2752, Android 휴대폰 1080×1920, 피처 그래픽 1024×500.
-- Android 릴리스 서명은 아직 디버그 키(build.gradle.kts TODO). Play 업로드 전에 업로드 키 설정 필요.
+- Android 릴리스 서명: `android/key.properties` + `android/upload-keystore.jks`(alias upload, 둘 다 저장소 제외, 견본은 `key.properties.example`). 없으면 디버그 키로 서명.
+  업로드 키 인증서 SHA-256 `03:2E:7D:48:…:A4:3B`. `flutter build appbundle --release` → `build/app/outputs/bundle/release/app-release.aab`. 키·비밀번호는 사용자가 따로 백업.
 
 ## 아이콘 에셋 다시 만들기
 
@@ -183,11 +184,14 @@ art/source/                 app_icon.png, icons/(food_sheet.png, office_sheet.pn
 - 최근 커밋: 다크 테마, 결산 개편, 적립 효과, 브랜드 심볼·앱 아이콘, 월 누적 24시간, iOS 위젯, 번들 ID, 개인정보 페이지, 스토어 캡처·홍보 이미지, iOS 서명 팀.
 - 모든 변경 커밋됨(마지막: `dc9d6b1 CLAUDE.md 수정`, 그 전 `7c60d05 안드로이드 ID 변경`).
 - App Store Connect 앱 정보 입력 완료(1.0 제출 준비 중).
+- Google Play Console: 앱 생성(com.salaryfarming.app, 무료, 한국어), 앱 콘텐츠 선언 전부(광고 없음, 데이터 수집 없음, 만 18세 이상, 전체이용가, 금융·건강 기능 없음, 판매자 상태 예), 스토어 설정(금융), 기본 등록정보(설명·아이콘·피처 그래픽·스크린샷 6장, AI 생성 라벨 지정) 완료.
+  2026-11-27 비공개 테스트(Alpha) 1 (1.0.0) 검토 제출: 국가 대한민국. 승인 뒤 사용자가 테스터 Google 그룹을 직접 지정.
+  남은 것: 테스터 12명 이상 14일 이상 비공개 테스트 → 프로덕션 신청.
 - `flutter analyze` 경고 0, 테스트 97개 통과.
 
 ## 남은 일 / 아이디어 (요청 시에만)
 
-- Android 릴리스 서명 설정, Play 스토어 등록.
+- Play 비공개 테스트(12명·14일) → 프로덕션 신청.
 - 자정을 넘기면 오늘 값이 0이 되는지 확인하는 테스트 추가(제안만 해 둠).
 - 월 누적이 달 중간 설정 변경을 이력대로 나눠 계산하지 않음(위 shortcut).
 - 이미 설치된 기기는 기본 혜택 '휴대폰 충전'이 예전 빈도(매일)라 홈 3칸에 들어갈 수 있음 → 길게 눌러 빈도를 바꾸거나 데이터 초기화.
